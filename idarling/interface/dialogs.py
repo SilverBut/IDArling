@@ -516,7 +516,6 @@ class NetworkSettingsDialog(QDialog):
 
         :param dialog: the add server dialog
         """
-        # TODO: Add data source after core is modified
         host, port, server_ssl_mode, server_ssl_cert_path, client_ssl_mode, client_ssl_cert_path = dialog.get_result()
         Server = namedtuple('Server', ['host', 'port',
          'server_ssl_mode', 'server_ssl_cert_path',
@@ -539,7 +538,6 @@ class NetworkSettingsDialog(QDialog):
 
         :param dialog: the add server dialog
         """
-        # TODO: Add data source after core is modified
         cur_server_row = self.get_selected_server_idx()
 
         host, port, server_ssl_mode, server_ssl_cert_path, client_ssl_mode, client_ssl_cert_path = dialog.get_result()
@@ -685,7 +683,6 @@ class ServerInfoInputDialog(QDialog):
             self._serverName.setText(preset_server.host)
             self._serverPort.setText(str(preset_server.port))
             # self._serverSSLDisabledRadiobutton.setChecked(preset_server.no_ssl)
-            # TODO: Add data source after core is modified
             if preset_server.server_ssl_mode == 0:
                 self._serverSSLDisabledRadiobutton.setChecked(True)
             elif preset_server.server_ssl_mode == 1:
@@ -734,7 +731,6 @@ class ServerInfoInputDialog(QDialog):
 
         :return: the result
         """
-        # TODO: Add data source after core is modified
         server_ssl_mode = 0
         if self._serverSSLSysChainRadiobutton.isChecked():
             server_ssl_mode = 2
