@@ -233,6 +233,10 @@ class Core(Module):
     def load_state(self):
         """
         Load the state file.
+        server_ssl_mode or client_ssl_mode:
+            0 - Disabled
+            1 - Enabled with customized path
+            2 - Enabled with OS PKI
         """
         statePath = local_resource('files', 'state.json')
         if not os.path.isfile(statePath):
@@ -247,7 +251,9 @@ class Core(Module):
 
             # Load the server list from state
             Server = collections.namedtuple('Server',
-                                            ['host', 'port', 'no_ssl'])
+                                            ['host', 'port',
+                                             'server_ssl_mode', 'server_ssl_cert_path',
+                                             'client_ssl_mode', 'client_ssl_cert_path'])
             if 'servers' in state:
                 self._servers = [Server(*addr) for addr in state['servers']]
 
@@ -257,7 +263,9 @@ class Core(Module):
         """
         statePath = local_resource('files', 'state.json')
         with open(statePath, 'wb') as stateFile:
-            state = {'servers': [[s.host, s.port, s.no_ssl]
+            state = {'servers': [[s.host, s.port,
+                                  s.server_ssl_mode, s.server_ssl_cert_path,
+                                  s.client_ssl_mode, s.server_ssl_cert_path]
                                  for s in self._servers]}
 
             logger.debug("Saved state: %s" % state)

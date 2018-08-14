@@ -23,7 +23,7 @@ from PyQt5.QtGui import QIcon, QRegExpValidator
 from PyQt5.QtWidgets import (QDialog, QHBoxLayout, QVBoxLayout, QGridLayout,
                              QWidget, QTableWidget, QTableWidgetItem, QLabel,
                              QPushButton, QLineEdit, QGroupBox, QMessageBox,
-                             QCheckBox)
+                             QCheckBox, QRadioButton, QFileDialog)
 
 from ..shared.commands import GetRepositories, GetBranches, \
                                NewRepository, NewBranch
@@ -516,6 +516,7 @@ class NetworkSettingsDialog(QDialog):
 
         :param dialog: the add server dialog
         """
+        # TODO: Add data source after core is modified
         host, port, no_ssl = dialog.get_result()
         Server = namedtuple('Server', ['host', 'port', 'no_ssl'])
         server = Server(host, port, no_ssl)
@@ -536,6 +537,7 @@ class NetworkSettingsDialog(QDialog):
 
         :param dialog: the add server dialog
         """
+        # TODO: Add data source after core is modified
         cur_server_row = self.get_selected_server_idx()
 
         host, port, no_ssl = dialog.get_result()
@@ -569,6 +571,14 @@ class ServerInfoInputDialog(QDialog):
     The dialog allowing an user to add a remote server to connect to.
     """
 
+    def serverSSLCustomizedCertBtnClicked(self):
+        certdir = str(QFileDialog.getOpenFileName(self, "Select Server-side Root Cert")[0])
+        self._serverSSLCustomizedCertPath.setText(certdir)
+
+    def clientSSLCustomizedCertBtnClicked(self):
+        certdir = str(QFileDialog.getOpenFileName(self, "Select Client-side Root Cert")[0])
+        self._clientSSLCustomizedCertPath.setText(certdir)
+
     def __init__(self, plugin, title, preset_server=None):
         """
         Initialize the network setting dialog.
@@ -598,13 +608,83 @@ class ServerInfoInputDialog(QDialog):
         self._serverPort.setPlaceholderText("31013")
         layout.addWidget(self._serverPort)
 
-        self._noSSLCheckbox = QCheckBox("Disable SSL")
-        layout.addWidget(self._noSSLCheckbox)
+        # Add configuration for server-side SSL certs
+        self._serverSSLGroupbox = QGroupBox("Server-side SSL Config")
+
+        self._serverSSLDisabledRadiobutton = QRadioButton("Disable SSL")
+        self._serverSSLDisabledRadiobutton.setChecked(True)
+        self._serverSSLDisabledRadiobutton.clicked.connect(
+            lambda: self._serverSSLCustomizedCertPath.setDisabled(True))
+        self._serverSSLDisabledRadiobutton.clicked.connect(
+            lambda: self._serverSSLCustomizedCertBtn.setDisabled(True))
+
+        self._serverSSLSysChainRadiobutton = QRadioButton("Use OS Trustchain")
+        self._serverSSLSysChainRadiobutton.clicked.connect(
+            lambda: self._serverSSLCustomizedCertPath.setDisabled(True))
+        self._serverSSLSysChainRadiobutton.clicked.connect(
+            lambda: self._serverSSLCustomizedCertBtn.setDisabled(True))
+
+        self._serverSSLCustomizedRadiobutton = QRadioButton("Use Customized Root Cert")
+        self._serverSSLCustomizedRadiobutton.clicked.connect(
+            lambda: self._serverSSLCustomizedCertPath.setDisabled(False))
+        self._serverSSLCustomizedRadiobutton.clicked.connect(
+            lambda: self._serverSSLCustomizedCertBtn.setDisabled(False))
+
+        self._serverSSLCustomizedCertPath = QLineEdit()
+        self._serverSSLCustomizedCertPath.setPlaceholderText("Cert Path")
+        self._serverSSLCustomizedCertPath.setDisabled(True)
+
+        self._serverSSLCustomizedCertBtn = QPushButton("Select Cert...")
+        self._serverSSLCustomizedCertBtn.setDisabled(True)
+        self._serverSSLCustomizedCertBtn.clicked.connect(self.serverSSLCustomizedCertBtnClicked)
+
+        serverSSLLayout = QVBoxLayout(self._serverSSLGroupbox)
+        serverSSLLayout.addWidget(self._serverSSLDisabledRadiobutton)
+        serverSSLLayout.addWidget(self._serverSSLSysChainRadiobutton)
+        serverSSLLayout.addWidget(self._serverSSLCustomizedRadiobutton)
+        serverSSLLayout.addWidget(self._serverSSLCustomizedCertPath)
+        serverSSLLayout.addWidget(self._serverSSLCustomizedCertBtn)
+        layout.addWidget(self._serverSSLGroupbox)
+
+
+        # Add configuration for client-side SSL certs
+        self._clientSSLGroupbox = QGroupBox("Client-side SSL Config")
+
+        self._clientSSLDisabledRadiobutton = QRadioButton("Disable Client Cert")
+        self._clientSSLDisabledRadiobutton.clicked.connect(
+            lambda: self._clientSSLCustomizedCertPath.setDisabled(True))
+        self._clientSSLDisabledRadiobutton.clicked.connect(
+            lambda: self._clientSSLCustomizedCertBtn.setDisabled(True))
+
+        self._clientSSLCustomizedRadiobutton = QRadioButton("Use Client Cert")
+        self._clientSSLCustomizedRadiobutton.clicked.connect(
+            lambda: self._clientSSLCustomizedCertPath.setDisabled(False))
+        self._clientSSLCustomizedRadiobutton.clicked.connect(
+            lambda: self._clientSSLCustomizedCertBtn.setDisabled(False))
+
+        self._clientSSLCustomizedCertPath = QLineEdit("")
+        self._clientSSLCustomizedCertPath.setPlaceholderText("Cert Path")
+        self._clientSSLCustomizedCertPath.setDisabled(True)
+
+        self._clientSSLCustomizedCertBtn = QPushButton("Select Cert...")
+        self._clientSSLCustomizedCertBtn.setDisabled(True)
+        self._clientSSLCustomizedCertBtn.clicked.connect(self.clientSSLCustomizedCertBtnClicked)
+
+
+        clientSSLLayout = QVBoxLayout(self._clientSSLGroupbox)
+        clientSSLLayout.addWidget(self._clientSSLDisabledRadiobutton)
+        clientSSLLayout.addWidget(self._clientSSLCustomizedRadiobutton)
+        clientSSLLayout.addWidget(self._clientSSLCustomizedCertPath)
+        clientSSLLayout.addWidget(self._clientSSLCustomizedCertBtn)
+        self._clientSSLDisabledRadiobutton.setChecked(True)
+        layout.addWidget(self._clientSSLGroupbox)
+
 
         if preset_server is not None:
             self._serverName.setText(preset_server.host)
             self._serverPort.setText(str(preset_server.port))
-            self._noSSLCheckbox.setChecked(preset_server.no_ssl)
+            self._serverSSLDisabledRadiobutton.setChecked(preset_server.no_ssl)
+            # TODO: Add data source after core is modified
 
         downSide = QWidget(self)
         buttonsLayout = QHBoxLayout(downSide)
@@ -622,6 +702,7 @@ class ServerInfoInputDialog(QDialog):
 
         :return: the result
         """
+        # TODO: Add data source after core is modified
         return (self._serverName.text() or "127.0.0.1",
                 int(self._serverPort.text() or "31013"),
-                self._noSSLCheckbox.isChecked())
+                self._serverSSLDisabledRadiobutton.isChecked())

@@ -67,6 +67,7 @@ class Network(Module):
         :param no_ssl: disable SSL
         :return: did the operation succeed?
         """
+        # TODO: Add data source after core is modified
         # Make sure we're not already connected
         if self.connected:
             return False
