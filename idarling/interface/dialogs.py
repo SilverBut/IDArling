@@ -517,9 +517,11 @@ class NetworkSettingsDialog(QDialog):
         :param dialog: the add server dialog
         """
         # TODO: Add data source after core is modified
-        host, port, no_ssl = dialog.get_result()
-        Server = namedtuple('Server', ['host', 'port', 'no_ssl'])
-        server = Server(host, port, no_ssl)
+        host, port, server_ssl_mode, server_ssl_cert_path, client_ssl_mode, client_ssl_cert_path = dialog.get_result()
+        Server = namedtuple('Server', ['host', 'port',
+         'server_ssl_mode', 'server_ssl_cert_path',
+         'client_ssl_mode', 'client_ssl_cert_path'])
+        server = Server(host, port, server_ssl_mode, server_ssl_cert_path, client_ssl_mode, client_ssl_cert_path)
         servers = self._plugin.core.servers
         servers.append(server)
         self._plugin.core.servers = servers
@@ -540,9 +542,11 @@ class NetworkSettingsDialog(QDialog):
         # TODO: Add data source after core is modified
         cur_server_row = self.get_selected_server_idx()
 
-        host, port, no_ssl = dialog.get_result()
-        Server = namedtuple('Server', ['host', 'port', 'no_ssl'])
-        server = Server(host, port, no_ssl)
+        host, port, server_ssl_mode, server_ssl_cert_path, client_ssl_mode, client_ssl_cert_path = dialog.get_result()
+        Server = namedtuple('Server', ['host', 'port',
+         'server_ssl_mode', 'server_ssl_cert_path',
+         'client_ssl_mode', 'client_ssl_cert_path'])
+        server = Server(host, port, server_ssl_mode, server_ssl_cert_path, client_ssl_mode, client_ssl_cert_path)
         servers = self._plugin.core.servers
         servers[cur_server_row] = server
         self._plugin.core.servers = servers
@@ -646,7 +650,6 @@ class ServerInfoInputDialog(QDialog):
         serverSSLLayout.addWidget(self._serverSSLCustomizedCertBtn)
         layout.addWidget(self._serverSSLGroupbox)
 
-
         # Add configuration for client-side SSL certs
         self._clientSSLGroupbox = QGroupBox("Client-side SSL Config")
 
@@ -670,7 +673,6 @@ class ServerInfoInputDialog(QDialog):
         self._clientSSLCustomizedCertBtn.setDisabled(True)
         self._clientSSLCustomizedCertBtn.clicked.connect(self.clientSSLCustomizedCertBtnClicked)
 
-
         clientSSLLayout = QVBoxLayout(self._clientSSLGroupbox)
         clientSSLLayout.addWidget(self._clientSSLDisabledRadiobutton)
         clientSSLLayout.addWidget(self._clientSSLCustomizedRadiobutton)
@@ -679,12 +681,33 @@ class ServerInfoInputDialog(QDialog):
         self._clientSSLDisabledRadiobutton.setChecked(True)
         layout.addWidget(self._clientSSLGroupbox)
 
-
         if preset_server is not None:
             self._serverName.setText(preset_server.host)
             self._serverPort.setText(str(preset_server.port))
-            self._serverSSLDisabledRadiobutton.setChecked(preset_server.no_ssl)
+            # self._serverSSLDisabledRadiobutton.setChecked(preset_server.no_ssl)
             # TODO: Add data source after core is modified
+            if preset_server.server_ssl_mode == 0:
+                self._serverSSLDisabledRadiobutton.setChecked(True)
+            elif preset_server.server_ssl_mode == 1:
+                self._serverSSLCustomizedRadiobutton.setChecked(True)
+                self._serverSSLCustomizedCertPath.setDisabled(False)
+                self._serverSSLCustomizedCertBtn.setDisabled(False)
+            elif preset_server.server_ssl_mode == 2:
+                self._serverSSLSysChainRadiobutton.setChecked(True)
+            else:
+                raise ValueError("Wrong config of server_ssl_mode %d for host %s:%d"%
+                                 (preset_server.server_ssl_mode, preset_server.host, preset_server.port))
+            if preset_server.client_ssl_mode == 0:
+                self._clientSSLDisabledRadiobutton.setChecked(True)
+            elif preset_server.client_ssl_mode == 1:
+                self._clientSSLCustomizedRadiobutton.setChecked(True)
+                self._clientSSLCustomizedCertPath.setDisabled(False)
+                self._clientSSLCustomizedCertBtn.setDisabled(False)
+            else:
+                raise ValueError("Wrong config of client_ssl_mode %d for host %s:%d" %
+                                 (preset_server.client_ssl_mode, preset_server.host, preset_server.port))
+            self._serverSSLCustomizedCertPath.setText(preset_server.server_ssl_cert_path)
+            self._clientSSLCustomizedCertPath.setText(preset_server.client_ssl_cert_path)
 
         downSide = QWidget(self)
         buttonsLayout = QHBoxLayout(downSide)
@@ -698,11 +721,33 @@ class ServerInfoInputDialog(QDialog):
 
     def get_result(self):
         """
-        Get the result (server, port) from this dialog.
+        Get the result (server, port, SSLMODEs) from this dialog.
+
+        ['host', 'port',
+         'server_ssl_mode', 'server_ssl_cert_path',
+         'client_ssl_mode', 'client_ssl_cert_path']
+
+        server_ssl_mode or client_ssl_mode:
+            0 - Disabled
+            1 - Enabled with customized path
+            2 - Enabled with OS PKI
 
         :return: the result
         """
         # TODO: Add data source after core is modified
+        server_ssl_mode = 0
+        if self._serverSSLSysChainRadiobutton.isChecked():
+            server_ssl_mode = 2
+        elif self._serverSSLCustomizedRadiobutton.isChecked():
+            server_ssl_mode = 1
+
+        client_ssl_mode = 0
+        if self._clientSSLCustomizedRadiobutton.isChecked():
+            client_ssl_mode = 1
+
         return (self._serverName.text() or "127.0.0.1",
                 int(self._serverPort.text() or "31013"),
-                self._serverSSLDisabledRadiobutton.isChecked())
+                server_ssl_mode,
+                str(self._serverSSLCustomizedCertPath.text()),
+                client_ssl_mode,
+                str(self._clientSSLCustomizedCertPath.text()))
