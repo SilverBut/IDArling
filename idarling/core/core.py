@@ -265,7 +265,7 @@ class Core(Module):
         with open(statePath, 'wb') as stateFile:
             state = {'servers': [[s.host, s.port,
                                   s.server_ssl_mode, s.server_ssl_cert_path,
-                                  s.client_ssl_mode, s.server_ssl_cert_path]
+                                  s.client_ssl_mode, s.client_ssl_cert_path]
                                  for s in self._servers]}
 
             logger.debug("Saved state: %s" % state)
