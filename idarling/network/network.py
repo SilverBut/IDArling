@@ -91,6 +91,7 @@ class Network(Module):
         # Prepare SSL on client side
         if server_ssl_mode == 1:
             ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=server_ssl_cert_path)
+            logger.debug("create_default_context(cafile=%s)"%(server_ssl_cert_path))
         elif server_ssl_mode == 2:
             ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH) # no cafile means use sys chain
         elif server_ssl_mode != 0:
@@ -98,12 +99,13 @@ class Network(Module):
 
         if client_ssl_mode == 1:
             ctx.load_cert_chain(certfile=client_ssl_cert_path)
+            logger.debug("load_cert_chain(certfile=%s)"%(client_ssl_cert_path))
         elif client_ssl_mode != 0:
             raise ValueError("Wrong client_ssl_mode=%d when connect"%(client_ssl_mode))
 
+
         # Apply ctx. Client side cert is useless without server side cert.
         if server_ssl_mode:
-            ctx = ssl.create_default_context()
             sock = ctx.wrap_socket(sock, server_hostname=host)
 
         try:
