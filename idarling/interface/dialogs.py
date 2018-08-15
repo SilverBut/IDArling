@@ -26,7 +26,7 @@ from PyQt5.QtWidgets import (QDialog, QHBoxLayout, QVBoxLayout, QGridLayout,
                              QCheckBox, QRadioButton, QFileDialog)
 
 from ..shared.commands import GetRepositories, GetBranches, \
-                               NewRepository, NewBranch
+    NewRepository, NewBranch
 from ..shared.models import Repository, Branch
 
 logger = logging.getLogger('IDArling.Interface')
@@ -173,6 +173,7 @@ class OpenDialog(QDialog):
         """
         Refreshes the table of branches.
         """
+
         def createItem(text, branch):
             item = QTableWidgetItem(text)
             item.setData(Qt.UserRole, branch)
@@ -180,6 +181,7 @@ class OpenDialog(QDialog):
             if branch.tick == -1:
                 item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
             return item
+
         self._branchesTable.setRowCount(len(self._branches))
         for i, branch in enumerate(self._branches):
             self._branchesTable.setItem(i, 0, createItem(branch.name, branch))
@@ -518,8 +520,8 @@ class NetworkSettingsDialog(QDialog):
         """
         host, port, server_ssl_mode, server_ssl_cert_path, client_ssl_mode, client_ssl_cert_path = dialog.get_result()
         Server = namedtuple('Server', ['host', 'port',
-         'server_ssl_mode', 'server_ssl_cert_path',
-         'client_ssl_mode', 'client_ssl_cert_path'])
+                                       'server_ssl_mode', 'server_ssl_cert_path',
+                                       'client_ssl_mode', 'client_ssl_cert_path'])
         server = Server(host, port, server_ssl_mode, server_ssl_cert_path, client_ssl_mode, client_ssl_cert_path)
         servers = self._plugin.core.servers
         servers.append(server)
@@ -542,8 +544,8 @@ class NetworkSettingsDialog(QDialog):
 
         host, port, server_ssl_mode, server_ssl_cert_path, client_ssl_mode, client_ssl_cert_path = dialog.get_result()
         Server = namedtuple('Server', ['host', 'port',
-         'server_ssl_mode', 'server_ssl_cert_path',
-         'client_ssl_mode', 'client_ssl_cert_path'])
+                                       'server_ssl_mode', 'server_ssl_cert_path',
+                                       'client_ssl_mode', 'client_ssl_cert_path'])
         server = Server(host, port, server_ssl_mode, server_ssl_cert_path, client_ssl_mode, client_ssl_cert_path)
         servers = self._plugin.core.servers
         servers[cur_server_row] = server
@@ -580,11 +582,11 @@ class ServerInfoInputDialog(QDialog):
     def clientSSLEnableCustomizedPathBtnTxt(self):
         self._clientSSLCustomizedCertPath.setDisabled(False)
         self._clientSSLCustomizedCertBtn.setDisabled(False)
-    
+
     def serverSSLDisableCustomizedPathBtnTxt(self):
         self._serverSSLCustomizedCertPath.setDisabled(True)
         self._serverSSLCustomizedCertBtn.setDisabled(True)
-    
+
     def serverSSLEnableCustomizedPathBtnTxt(self):
         self._serverSSLCustomizedCertPath.setDisabled(False)
         self._serverSSLCustomizedCertBtn.setDisabled(False)
@@ -714,7 +716,7 @@ class ServerInfoInputDialog(QDialog):
                 self.serverSSLEnableCustomizedPathBtnTxt()
                 self.clientSSLEnableAll()
             else:
-                raise ValueError("Wrong config of server_ssl_mode %d for host %s:%d"%
+                raise ValueError("Wrong config of server_ssl_mode %d for host %s:%d" %
                                  (preset_server.server_ssl_mode, preset_server.host, preset_server.port))
             if preset_server.client_ssl_mode == 0:
                 self._clientSSLDisabledRadiobutton.setChecked(True)

@@ -45,6 +45,7 @@ class ServerClient(ClientSocket):
         class CustomAdapter(logging.LoggerAdapter):
             def process(self, msg, kwargs):
                 return '(%s) %s' % (prefix, msg), kwargs
+
         self._logger = CustomAdapter(self._logger, {})
         self._logger.info("Connected")
 
@@ -208,7 +209,7 @@ class Server(ServerSocket):
             # First check if we should have a context setup
             if sslcfg["server_ssl_mode"]:
                 self._ssl.load_cert_chain(certfile=sslcfg["server_ssl_cert_path"])
-                self._logger.info("Load_cert_chain %s"%(sslcfg["server_ssl_cert_path"]))
+                self._logger.info("Load_cert_chain %s" % (sslcfg["server_ssl_cert_path"]))
             if sslcfg["client_ssl_mode"]:
                 self._ssl.verify_mode |= ssl.CERT_REQUIRED
                 self._ssl.load_verify_locations(cafile=sslcfg["client_ssl_cert_path"])

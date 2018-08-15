@@ -64,7 +64,13 @@ class Network(Module):
 
         :param host: the host
         :param port: the port
-        :param no_ssl: disable SSL
+        :param server_ssl_mode: 0 - no server cert check,
+                                1 - check server cert with customized ca,
+                                2 - check server cert with sys ca
+        :param server_ssl_cert_path: CA path for server cert, only use if server_ssl_mode == 1
+        :param client_ssl_mode: 0 - no client cert send,
+                                1 - send client cert
+        :param client_ssl_cert_path: PEM path for client cert, only use if client_ssl_mode == 1
         :return: did the operation succeed?
         """
         # TODO: Add data source after core is modified
@@ -75,8 +81,8 @@ class Network(Module):
         # Create a client
         self._client = Client(self._plugin)
         Server = collections.namedtuple('Server', ['host', 'port',
-         'server_ssl_mode', 'server_ssl_cert_path',
-         'client_ssl_mode', 'client_ssl_cert_path'])
+                                                   'server_ssl_mode', 'server_ssl_cert_path',
+                                                   'client_ssl_mode', 'client_ssl_cert_path'])
         self._server = Server(host, port, server_ssl_mode, server_ssl_cert_path, client_ssl_mode, client_ssl_cert_path)
 
         # Do the actual connection process
@@ -87,22 +93,23 @@ class Network(Module):
 
         # Prepare socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+        ctx = None
 
         # Prepare SSL on client side
         if server_ssl_mode == 1:
             ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=server_ssl_cert_path)
-            logger.debug("create_default_context(cafile=%s)"%(server_ssl_cert_path))
+            logger.debug("create_default_context(cafile=%s)" % server_ssl_cert_path)
         elif server_ssl_mode == 2:
-            ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH) # no cafile means use sys chain
+            ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)  # no cafile means use sys chain
         elif server_ssl_mode != 0:
-            raise ValueError("Wrong server_ssl_mode=%d when connect"%(server_ssl_mode))
+            raise ValueError("Wrong server_ssl_mode=%d when connect" % server_ssl_mode)
 
-        if client_ssl_mode == 1:
-            ctx.load_cert_chain(certfile=client_ssl_cert_path)
-            logger.debug("load_cert_chain(certfile=%s)"%(client_ssl_cert_path))
-        elif client_ssl_mode != 0:
-            raise ValueError("Wrong client_ssl_mode=%d when connect"%(client_ssl_mode))
-
+        if ctx:
+            if client_ssl_mode == 1:
+                ctx.load_cert_chain(certfile=client_ssl_cert_path)
+                logger.debug("load_cert_chain(certfile=%s)" % client_ssl_cert_path)
+            elif client_ssl_mode != 0:
+                raise ValueError("Wrong client_ssl_mode=%d when connect" % client_ssl_mode)
 
         # Apply ctx. Client side cert is useless without server side cert.
         if server_ssl_mode:
@@ -119,7 +126,7 @@ class Network(Module):
             self._plugin.notify_disconnected()
             return False
         sock.settimeout(0)
-        sock.setblocking(0)
+        sock.setblocking(False)
         self._client.connect(sock)
 
         # We're connected now
@@ -175,7 +182,7 @@ class Network(Module):
         if not server.start('0.0.0.0'):
             return False
         self._integrated = server
-        return self.connect('127.0.0.1', server.port, True)
+        return self.connect('127.0.0.1', server.port, 0, None, 0, None)
 
     def stop_server(self):
         """
