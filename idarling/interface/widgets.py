@@ -154,7 +154,10 @@ class StatusWidget(QWidget):
                 if not isConnected:
                     self._plugin.network.connect(serverAction._server.host,
                                                  serverAction._server.port,
-                                                 serverAction._server.no_ssl)
+                                                 serverAction._server.server_ssl_mode,
+                                                 serverAction._server.server_ssl_cert_path,
+                                                 serverAction._server.client_ssl_mode,
+                                                 serverAction._server.client_ssl_cert_path)
 
             for server in self._plugin.core.servers:
                 isConnected = self._plugin.network.connected \

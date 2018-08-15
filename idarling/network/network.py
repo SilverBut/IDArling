@@ -58,7 +58,7 @@ class Network(Module):
         self.disconnect()
         return True
 
-    def connect(self, host, port, no_ssl=False):
+    def connect(self, host, port, server_ssl_mode, server_ssl_cert_path, client_ssl_mode, client_ssl_cert_path):
         """
         Connect to the specified host and port.
 
@@ -74,18 +74,38 @@ class Network(Module):
 
         # Create a client
         self._client = Client(self._plugin)
-        Server = collections.namedtuple('Server', ['host', 'port', 'no_ssl'])
-        self._server = Server(host, port, no_ssl)
+        Server = collections.namedtuple('Server', ['host', 'port',
+         'server_ssl_mode', 'server_ssl_cert_path',
+         'client_ssl_mode', 'client_ssl_cert_path'])
+        self._server = Server(host, port, server_ssl_mode, server_ssl_cert_path, client_ssl_mode, client_ssl_cert_path)
 
         # Do the actual connection process
-        logger.info("Connecting to %s:%d..." % (host, port))
+        logger.info("Connecting to %s:%d with server_ssl_mode=%d and client_ssl_mode=%d..." %
+                    (host, port, server_ssl_mode, client_ssl_mode))
         # Notify the plugin of the connection
         self._plugin.notify_connecting()
 
+        # Prepare socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-        if not no_ssl:
+
+        # Prepare SSL on client side
+        if server_ssl_mode == 1:
+            ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=server_ssl_cert_path)
+        elif server_ssl_mode == 2:
+            ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH) # no cafile means use sys chain
+        elif server_ssl_mode != 0:
+            raise ValueError("Wrong server_ssl_mode=%d when connect"%(server_ssl_mode))
+
+        if client_ssl_mode == 1:
+            ctx.load_cert_chain(certfile=client_ssl_cert_path)
+        elif client_ssl_mode != 0:
+            raise ValueError("Wrong client_ssl_mode=%d when connect"%(client_ssl_mode))
+
+        # Apply ctx. Client side cert is useless without server side cert.
+        if server_ssl_mode:
             ctx = ssl.create_default_context()
             sock = ctx.wrap_socket(sock, server_hostname=host)
+
         try:
             sock.connect((host, port))
         except socket.error as e:
