@@ -203,9 +203,17 @@ class Server(ServerSocket):
         """
         self._logger.info("Starting server on %s:%d" % (host, port))
         if self._ssl:
-            cert, key = self._ssl
+            sslcfg = self._ssl
             self._ssl = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-            self._ssl.load_cert_chain(certfile=cert, keyfile=key)
+            # First check if we should have a context setup
+            if sslcfg["server_ssl_mode"]:
+                self._ssl.load_cert_chain(certfile=sslcfg["server_ssl_cert_path"])
+                self._logger.info("Load_cert_chain %s"%(sslcfg["server_ssl_cert_path"]))
+            if sslcfg["client_ssl_mode"]:
+                self._ssl.verify_mode |= ssl.CERT_REQUIRED
+                self._ssl.load_verify_locations(cafile=sslcfg["client_ssl_cert_path"])
+                self._logger.info("Load_verify_locations %s" % (sslcfg["client_ssl_cert_path"]))
+            self._logger.info(self._ssl.cert_store_stats())
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
