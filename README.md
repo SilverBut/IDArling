@@ -63,117 +63,17 @@ you should be able to access the following menus:
 - File --> Save to server
 ```
 
-### SSL Configuration
+## FAQ
 
-You can use server-side SSL to protect your info, or you can also use client-side
-SSL to protect you from unauthenticated clients. Here is a basic guideline of how
-to do this correctly.
+* Where is my old servers?
 
-First, you should have a **CA cert** for both client and server.
-
-```bash
-openssl req -new -newkey rsa:2048 -days 7 -nodes -x509 -keyout CAserver.key -out CAserver.crt
-openssl req -new -newkey rsa:2048 -days 7 -nodes -x509 -keyout CAclient.key -out CAclient.crt
-```
-
-Then for each **server**, create its own CSR file. Notice, **IP Address** as CN might cause
-problems, and always make sure you use correct CN or you will met failure about cert invalid.
-
-```bash
-$ openssl genrsa -out domain.org.key 2048
-Generating RSA private key, 2048 bit long modulus
-...+.....+++
-......+.......................+++
-e is 65537 (0x010001)
-
-$ openssl req -new -key domain.org.key -out domain.org.csr
-You are about to be asked to enter information that will be incorporated
-into your certificate request.
-What you are about to enter is what is called a Distinguished Name or a DN.
-There are quite a few fields but you can leave some blank
-For some fields there will be a default value,
-If you enter '.', the field will be left blank.
------
-Country Name (2 letter code) [AU]:CN
-State or Province Name (full name) [Some-State]:Pool
-Locality Name (eg, city) []:Pool
-Organization Name (eg, company) [Internet Widgits Pty Ltd]:Funfacts
-Organizational Unit Name (eg, section) []:Server domain.org for IDArling
-Common Name (e.g. server FQDN or YOUR name) []:domain.org
-Email Address []:.
-
-Please enter the following 'extra' attributes
-to be sent with your certificate request
-A challenge password []:
-An optional company name []:
-```
-
-Then sign the CSR file
-
-```bash
-$ openssl x509 -req -in domain.org.csr -CA CAserver.crt -CAkey CAserver.key -CAcreateserial -out domain.org.crt
-Signature ok
-subject=C = CN, ST = Pool, L = Pool, O = Funfacts, OU = Server domain.org for IDArling, CN = domain.org
-Getting CA Private Key
-
-$ cat domain.org.crt domain.org.key > domain.org.pem
-```
-
-Now we can generate and sign for each user. Ask each user to generate their own key and CSR:
-
-```bash
-$ openssl genrsa -out silver.key 2048 && openssl req -new -key silver.key -out silver.csr
-Generating RSA private key, 2048 bit long modulus
-....+++
-.....+...+++
-e is 65537 (0x010001)
-You are about to be asked to enter information that will be incorporated
-into your certificate request.
-What you are about to enter is what is called a Distinguished Name or a DN.
-There are quite a few fields but you can leave some blank
-For some fields there will be a default value,
-If you enter '.', the field will be left blank.
------
-Country Name (2 letter code) [AU]:CN
-State or Province Name (full name) [Some-State]:Pool
-Locality Name (eg, city) []:Pool
-Organization Name (eg, company) [Internet Widgits Pty Ltd]:NotFun
-Organizational Unit Name (eg, section) []: User silver for IDArling
-Common Name (e.g. server FQDN or YOUR name) []:silver
-Email Address []:
-
-Please enter the following 'extra' attributes
-to be sent with your certificate request
-A challenge password []:
-An optional company name []:
-```
-
-Then ask user to submit their own CSR file, and you should execute:
-
-```bash
-$ openssl x509 -req -in silver.csr -CA CAclient.crt -CAkey CAclient.key -CAcreateserial -out silver.crt 
-Signature ok
-subject=C = CN, ST = Pool, L = Pool, O = NotFun, OU = silver for IDArling, CN = silver
-Getting CA Private Key
-```
-
-Now for each user, give their own **silver.crt**, and also give them a **CAserver.crt**. Also don't forget
-to tell your user:
-
-```bash
-$ cat silver.crt silver.key > silver.pem
-```
-
-And protect both KEY and PEM file well. Then fill path to **CAserver.crt** to first input box, and fill
-path to **silver.pem** in the second input box.
-
-For each server, deploy their own **domain.org.pem**, and also give them a **CAclient.crt**. Then run:
-
-```bash
-$ python3 idarling_server.py --server-ssl domain.org.pem --client-ssl CAclient.crt -h domain.org -p 39393
-```
-
-Now you can add new users and servers easily, while protecting your security.
+In commit 08eca13d4ecd51cd518cb54546f971e3b43edf04 the config file name is changed
+from `state.json` to `config.json`, to enhance the config file storage. Thus all
+old servers are not displayed in your server list. But don't worry, you can still
+find them in your previous config file. The path of your config file depends
+your platform. For example, under Linux, the path should be: 
+`$HOME/.idapro/idarling/files/state.json`
+You can still find your old servers there.
 
 # Thanks
 

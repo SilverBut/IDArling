@@ -19,11 +19,11 @@ import ida_loader
 import ida_nalt
 
 from PyQt5.QtCore import Qt, QRegExp
-from PyQt5.QtGui import QIcon, QRegExpValidator
+from PyQt5.QtGui import QIcon, QRegExpValidator, QColor
 from PyQt5.QtWidgets import (QDialog, QHBoxLayout, QVBoxLayout, QGridLayout,
                              QWidget, QTableWidget, QTableWidgetItem, QLabel,
                              QPushButton, QLineEdit, QGroupBox, QMessageBox,
-                             QCheckBox, QRadioButton, QFileDialog)
+                             QCheckBox, QTabWidget, QColorDialog)
 
 from ..shared.commands import GetRepositories, GetBranches, \
     NewRepository, NewBranch
@@ -197,7 +197,7 @@ class OpenDialog(QDialog):
 
     def _branch_double_clicked(self):
         """
-        Called when a branch item is clicked.
+        Called when a branch item is double-clicked.
         """
         self.accept()
 
@@ -419,7 +419,7 @@ class NewBranchDialog(NewRepoDialog):
         self._nameLabel.setText("<b>Branch Name</b>")
 
 
-class NetworkSettingsDialog(QDialog):
+class SettingsDialog(QDialog):
     """
     The dialog allowing an user to select a remote server to connect to.
     """
@@ -430,7 +430,7 @@ class NetworkSettingsDialog(QDialog):
 
         :param plugin: the plugin instance
         """
-        super(NetworkSettingsDialog, self).__init__()
+        super(SettingsDialog, self).__init__()
         self._plugin = plugin
 
         # General setup of the dialog
@@ -439,12 +439,15 @@ class NetworkSettingsDialog(QDialog):
         iconPath = self._plugin.resource('settings.png')
         self.setWindowIcon(QIcon(iconPath))
 
+        tabs = QTabWidget(self)
+
+        # Network Settings tab
         layout = QHBoxLayout(self)
         servers = self._plugin.core.servers
         self._serversTable = QTableWidget(len(servers), 1, self)
         self._serversTable.setHorizontalHeaderLabels(("Servers",))
         for i, server in enumerate(servers):
-            item = QTableWidgetItem('%s:%d' % (server.host, server.port))
+            item = QTableWidgetItem('%s:%d' % (server["host"], server["port"]))
             item.setData(Qt.UserRole, server)
             item.setFlags(item.flags() & ~Qt.ItemIsEditable)
             self._serversTable.setItem(i, 0, item)
@@ -485,8 +488,93 @@ class NetworkSettingsDialog(QDialog):
         buttonsLayout.addWidget(self._quitButton)
         layout.addWidget(buttonsWidget)
 
-    def get_selected_server_idx(self):
-        return self._serversTable.row(self._serversTable.selectedItems()[0])
+        tab = QWidget()
+        tab.setLayout(layout)
+        tabs.addTab(tab, "Network Settings")
+
+        self.resize(tab.sizeHint().width() + 5, tab.sizeHint().height() + 30)
+
+        # User Settings tab
+        layout = QVBoxLayout(self)
+        display = "Disable users display in the navigation bar"
+        noNavbarColorizerCheckbox = QCheckBox(display)
+
+        def noNavbarColorizerActionTriggered():
+            self._plugin.interface.painter.noNavbarColorizer = \
+                    noNavbarColorizerCheckbox.isChecked()
+        checkbox = noNavbarColorizerCheckbox
+        checkbox.toggled.connect(noNavbarColorizerActionTriggered)
+        checked = self._plugin.interface.painter.noNavbarColorizer
+        noNavbarColorizerCheckbox.setChecked(checked)
+        layout.addWidget(noNavbarColorizerCheckbox)
+
+        display = "Disable notifications"
+        noNotificationsCheckbox = QCheckBox(display)
+
+        def noNotificationsActionToggled():
+            self._plugin.interface.painter.noNotifications = \
+                    noNotificationsCheckbox.isChecked()
+        noNotificationsCheckbox.toggled.connect(noNotificationsActionToggled)
+        checked = self._plugin.interface.painter.noNotifications
+        noNotificationsCheckbox.setChecked(checked)
+        layout.addWidget(noNotificationsCheckbox)
+
+        # User color
+        colorWidget = QWidget(self)
+        colorLayout = QHBoxLayout(colorWidget)
+        colorButton = QPushButton("")
+        colorButton.setFixedSize(50, 30)
+
+        def setColor(color):
+            """
+            Sets the color (if valid) as user's color
+
+            :param color: the color
+            """
+            if color.isValid():
+                r, g, b, _ = color.getRgb()
+                rgbColor = r << 16 | g << 8 | b
+                # set the color as user's color
+                self._plugin.interface.painter.color = rgbColor
+                # set the background button color
+                palette = colorButton.palette()
+                role = colorButton.backgroundRole()
+                palette.setColor(role, color)
+                colorButton.setPalette(palette)
+                colorButton.setAutoFillBackground(True)
+
+        userColor = self._plugin.interface.painter.color
+        color = QColor(userColor)
+        setColor(color)
+
+        # Add a handler on clicking color button
+        def colorButtonClicked(_):
+            color = QColorDialog.getColor()
+            setColor(color)
+        colorButton.clicked.connect(colorButtonClicked)
+
+        colorLayout.addWidget(colorButton)
+
+        # User name
+        self.colorLabel = QLineEdit()
+        self.colorLabel.setPlaceholderText("Name")
+        name = self._plugin.interface.painter.name
+        self.colorLabel.setText(name)
+        colorLayout.addWidget(self.colorLabel)
+
+        buttonsWidget = QWidget(self)
+        buttonsLayout = QHBoxLayout(buttonsWidget)
+        self._acceptButton = QPushButton("Ok")
+
+        self._acceptButton.clicked.connect(self.accept)
+        buttonsLayout.addWidget(self._acceptButton)
+
+        layout.addWidget(colorWidget)
+        layout.addWidget(buttonsWidget)
+
+        tab = QWidget()
+        tab.setLayout(layout)
+        tabs.addTab(tab, "User Settings")
 
     def _server_clicked(self, _):
         """
@@ -499,7 +587,7 @@ class NetworkSettingsDialog(QDialog):
         """
         Called when the add button is clicked.
         """
-        dialog = ServerInfoInputDialog(self._plugin, "Add server")
+        dialog = ServerInfoDialog(self._plugin, "Add server")
         dialog.accepted.connect(partial(self._add_dialog_accepted, dialog))
         dialog.exec_()
 
@@ -507,8 +595,9 @@ class NetworkSettingsDialog(QDialog):
         """
         Called when the add button is clicked.
         """
-        cur_server = self._plugin.core.servers[self.get_selected_server_idx()]
-        dialog = ServerInfoInputDialog(self._plugin, "Edit server", cur_server)
+        item = self._serversTable.selectedItems()[0]
+        server = item.data(Qt.UserRole)
+        dialog = ServerInfoDialog(self._plugin, "Edit server", server)
         dialog.accepted.connect(partial(self._edit_dialog_accepted, dialog))
         dialog.exec_()
 
@@ -518,17 +607,14 @@ class NetworkSettingsDialog(QDialog):
 
         :param dialog: the add server dialog
         """
-        host, port, server_ssl_mode, server_ssl_cert_path, client_ssl_mode, client_ssl_cert_path = dialog.get_result()
-        Server = namedtuple('Server', ['host', 'port',
-                                       'server_ssl_mode', 'server_ssl_cert_path',
-                                       'client_ssl_mode', 'client_ssl_cert_path'])
-        server = Server(host, port, server_ssl_mode, server_ssl_cert_path, client_ssl_mode, client_ssl_cert_path)
+        server = dialog.get_result()
         servers = self._plugin.core.servers
         servers.append(server)
         self._plugin.core.servers = servers
         rowCount = self._serversTable.rowCount()
         self._serversTable.insertRow(rowCount)
-        newServer = QTableWidgetItem('%s:%d' % (server.host, server.port))
+        newServer = QTableWidgetItem('%s:%d' %
+                                     (server["host"], server["port"]))
         newServer.setData(Qt.UserRole, server)
         newServer.setFlags(newServer.flags() & ~Qt.ItemIsEditable)
         self._serversTable.setItem(rowCount, 0, newServer)
@@ -538,23 +624,17 @@ class NetworkSettingsDialog(QDialog):
         """
         Called when the add server dialog is accepted by the user.
 
-        :param dialog: the add server dialog
+        :param dialog: the edit server dialog
         """
-        cur_server_row = self.get_selected_server_idx()
-
-        host, port, server_ssl_mode, server_ssl_cert_path, client_ssl_mode, client_ssl_cert_path = dialog.get_result()
-        Server = namedtuple('Server', ['host', 'port',
-                                       'server_ssl_mode', 'server_ssl_cert_path',
-                                       'client_ssl_mode', 'client_ssl_cert_path'])
-        server = Server(host, port, server_ssl_mode, server_ssl_cert_path, client_ssl_mode, client_ssl_cert_path)
+        server = dialog.get_result()
         servers = self._plugin.core.servers
-        servers[cur_server_row] = server
+        item = self._serversTable.selectedItems()[0]
+        servers[item.row()] = server
         self._plugin.core.servers = servers
 
-        newServer = QTableWidgetItem('%s:%d' % (server.host, server.port))
-        newServer.setData(Qt.UserRole, server)
-        newServer.setFlags(newServer.flags() & ~Qt.ItemIsEditable)
-        self._serversTable.setItem(cur_server_row, 0, newServer)
+        item.setText('%s:%d' % (server["host"], server["port"]))
+        item.setData(Qt.UserRole, server)
+        item.setFlags(item.flags() & ~Qt.ItemIsEditable)
         self.update()
 
     def _delete_button_clicked(self, _):
@@ -569,56 +649,34 @@ class NetworkSettingsDialog(QDialog):
         self._serversTable.removeRow(item.row())
         self.update()
 
+    def get_result(self):
+        """
+        Get the result (name, color, navbar coloration, notification) from this
+        dialog.
 
-class ServerInfoInputDialog(QDialog):
+        :return: the result
+        """
+        name = self.colorLabel.text()
+        color = self._plugin.interface.painter.color
+        notifications = self._plugin.interface.painter.noNotifications
+        navbarColorizer = self._plugin.interface.painter.noNavbarColorizer
+        return (name, color, notifications, navbarColorizer)
+
+
+class ServerInfoDialog(QDialog):
     """
     The dialog allowing an user to add a remote server to connect to.
     """
 
-    def clientSSLDisableCustomizedPathBtnTxt(self):
-        self._clientSSLCustomizedCertPath.setDisabled(True)
-        self._clientSSLCustomizedCertBtn.setDisabled(True)
-
-    def clientSSLEnableCustomizedPathBtnTxt(self):
-        self._clientSSLCustomizedCertPath.setDisabled(False)
-        self._clientSSLCustomizedCertBtn.setDisabled(False)
-
-    def serverSSLDisableCustomizedPathBtnTxt(self):
-        self._serverSSLCustomizedCertPath.setDisabled(True)
-        self._serverSSLCustomizedCertBtn.setDisabled(True)
-
-    def serverSSLEnableCustomizedPathBtnTxt(self):
-        self._serverSSLCustomizedCertPath.setDisabled(False)
-        self._serverSSLCustomizedCertBtn.setDisabled(False)
-
-    def clientSSLDisableAll(self):
-        self._clientSSLDisabledRadiobutton.setChecked(True)
-        self._clientSSLDisabledRadiobutton.setDisabled(True)
-        self._clientSSLCustomizedRadiobutton.setDisabled(True)
-        self._clientSSLCustomizedCertPath.setDisabled(True)
-        self._clientSSLCustomizedCertBtn.setDisabled(True)
-
-    def clientSSLEnableAll(self):
-        self._clientSSLDisabledRadiobutton.setDisabled(False)
-        self._clientSSLCustomizedRadiobutton.setDisabled(False)
-        self._clientSSLCustomizedCertPath.setDisabled(False)
-        self._clientSSLCustomizedCertBtn.setDisabled(False)
-
-    def serverSSLCustomizedCertBtnClicked(self):
-        certdir = str(QFileDialog.getOpenFileName(self, "Select Server-side Root Cert")[0])
-        self._serverSSLCustomizedCertPath.setText(certdir)
-
-    def clientSSLCustomizedCertBtnClicked(self):
-        certdir = str(QFileDialog.getOpenFileName(self, "Select Client-side Root Cert")[0])
-        self._clientSSLCustomizedCertPath.setText(certdir)
-
-    def __init__(self, plugin, title, preset_server=None):
+    def __init__(self, plugin, title, server=None):
         """
         Initialize the network setting dialog.
 
         :param plugin: the plugin instance
+        :param title: the dialog title
+        :param server: the current server information
         """
-        super(ServerInfoInputDialog, self).__init__()
+        super(ServerInfoDialog, self).__init__()
 
         # General setup of the dialog
         logger.debug("Add server settings dialog")
@@ -700,35 +758,10 @@ class ServerInfoInputDialog(QDialog):
         clientSSLLayout.addWidget(self._clientSSLCustomizedCertBtn)
         layout.addWidget(self._clientSSLGroupbox)
 
-        if preset_server is not None:
-            self._serverName.setText(preset_server.host)
-            self._serverPort.setText(str(preset_server.port))
-            # self._serverSSLDisabledRadiobutton.setChecked(preset_server.no_ssl)
-            if preset_server.server_ssl_mode == 0:
-                self._serverSSLDisabledRadiobutton.setChecked(True)
-                self.clientSSLDisableAll()
-            elif preset_server.server_ssl_mode == 1:
-                self._serverSSLCustomizedRadiobutton.setChecked(True)
-                self.serverSSLDisableCustomizedPathBtnTxt()
-                self.clientSSLEnableAll()
-            elif preset_server.server_ssl_mode == 2:
-                self._serverSSLSysChainRadiobutton.setChecked(True)
-                self.serverSSLEnableCustomizedPathBtnTxt()
-                self.clientSSLEnableAll()
-            else:
-                raise ValueError("Wrong config of server_ssl_mode %d for host %s:%d" %
-                                 (preset_server.server_ssl_mode, preset_server.host, preset_server.port))
-            if preset_server.client_ssl_mode == 0:
-                self._clientSSLDisabledRadiobutton.setChecked(True)
-                self.clientSSLDisableCustomizedPathBtnTxt()
-            elif preset_server.client_ssl_mode == 1:
-                self._clientSSLCustomizedRadiobutton.setChecked(True)
-                self.clientSSLEnableCustomizedPathBtnTxt()
-            else:
-                raise ValueError("Wrong config of client_ssl_mode %d for host %s:%d" %
-                                 (preset_server.client_ssl_mode, preset_server.host, preset_server.port))
-            self._serverSSLCustomizedCertPath.setText(preset_server.server_ssl_cert_path)
-            self._clientSSLCustomizedCertPath.setText(preset_server.client_ssl_cert_path)
+        if server is not None:
+            self._serverName.setText(server["host"])
+            self._serverPort.setText(str(server["port"]))
+            self._noSSLCheckbox.setChecked(server["no_ssl"])
 
         downSide = QWidget(self)
         buttonsLayout = QHBoxLayout(downSide)
@@ -755,19 +788,9 @@ class ServerInfoInputDialog(QDialog):
 
         :return: the result
         """
-        server_ssl_mode = 0
-        if self._serverSSLSysChainRadiobutton.isChecked():
-            server_ssl_mode = 2
-        elif self._serverSSLCustomizedRadiobutton.isChecked():
-            server_ssl_mode = 1
-
-        client_ssl_mode = 0
-        if self._clientSSLCustomizedRadiobutton.isChecked():
-            client_ssl_mode = 1
-
-        return (self._serverName.text() or "127.0.0.1",
-                int(self._serverPort.text() or "31013"),
-                server_ssl_mode,
-                str(self._serverSSLCustomizedCertPath.text()),
-                client_ssl_mode,
-                str(self._clientSSLCustomizedCertPath.text()))
+        new_server = {
+            "host": self._serverName.text() or "127.0.0.1",
+            "port": int(self._serverPort.text() or "31013"),
+            "no_ssl": self._noSSLCheckbox.isChecked()
+        }
+        return new_server

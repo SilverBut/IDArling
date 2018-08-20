@@ -58,7 +58,7 @@ class Network(Module):
         self.disconnect()
         return True
 
-    def connect(self, host, port, server_ssl_mode, server_ssl_cert_path, client_ssl_mode, client_ssl_cert_path):
+    def connect(self, server):
         """
         Connect to the specified host and port.
 
@@ -77,13 +77,13 @@ class Network(Module):
         # Make sure we're not already connected
         if self.connected:
             return False
+        self._server = server.copy()  # Copy in case of source being changed
+        host = self._server["host"]
+        port = self._server["port"]
+        no_ssl = self._server["port"]
 
         # Create a client
         self._client = Client(self._plugin)
-        Server = collections.namedtuple('Server', ['host', 'port',
-                                                   'server_ssl_mode', 'server_ssl_cert_path',
-                                                   'client_ssl_mode', 'client_ssl_cert_path'])
-        self._server = Server(host, port, server_ssl_mode, server_ssl_cert_path, client_ssl_mode, client_ssl_cert_path)
 
         # Do the actual connection process
         logger.info("Connecting to %s:%d with server_ssl_mode=%d and client_ssl_mode=%d..." %
@@ -182,7 +182,12 @@ class Network(Module):
         if not server.start('0.0.0.0'):
             return False
         self._integrated = server
-        return self.connect('127.0.0.1', server.port, 0, None, 0, None)
+        integrated_arg = {
+            "host": "127.0.0.1",
+            "port": server.port,
+            "no_ssl": True
+        }
+        return self.connect(integrated_arg)
 
     def stop_server(self):
         """
