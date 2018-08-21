@@ -60,17 +60,9 @@ class Network(Module):
 
     def connect(self, server):
         """
-        Connect to the specified host and port.
+        Connect to the specified server.
 
-        :param host: the host
-        :param port: the port
-        :param server_ssl_mode: 0 - no server cert check,
-                                1 - check server cert with customized ca,
-                                2 - check server cert with sys ca
-        :param server_ssl_cert_path: CA path for server cert, only use if server_ssl_mode == 1
-        :param client_ssl_mode: 0 - no client cert send,
-                                1 - send client cert
-        :param client_ssl_cert_path: PEM path for client cert, only use if client_ssl_mode == 1
+        :param server: the server information
         :return: did the operation succeed?
         """
         # TODO: Add data source after core is modified
