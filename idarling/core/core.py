@@ -10,7 +10,6 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-import collections
 import json
 import logging
 import os
@@ -22,7 +21,7 @@ import ida_netnode
 from ..module import Module
 from ..shared.commands import Subscribe, Unsubscribe
 from ..utilities.misc import local_resource
-from .hooks import Hooks, IDBHooks, IDPHooks, HexRaysHooks
+from .hooks import Hooks, IDBHooks, IDPHooks, HexRaysHooks, ViewHooks, UIHooks
 
 logger = logging.getLogger('IDArling.Core')
 
@@ -35,10 +34,13 @@ class Core(Module):
 
     def __init__(self, plugin):
         super(Core, self).__init__(plugin)
+        self._hooked = False
 
         self._idbHooks = None
         self._idpHooks = None
         self._hxeHooks = None
+        self._viewHooks = None
+        self._uiHooks = None
 
         self._uiHooksCore = None
         self._idbHooksCore = None
@@ -59,6 +61,8 @@ class Core(Module):
         self._idbHooks = IDBHooks(self._plugin)
         self._idpHooks = IDPHooks(self._plugin)
         self._hxeHooks = HexRaysHooks(self._plugin)
+        self._viewHooks = ViewHooks(self._plugin)
+        self._uiHooks = UIHooks(self._plugin)
 
         class UIHooksCore(Hooks, ida_kernwin.UI_Hooks):
             """
@@ -75,7 +79,8 @@ class Core(Module):
                 # Subscribe to the events stream if needed
                 if core.repo and core.branch:
                     self._plugin.network.send_packet(Subscribe(
-                        core.repo, core.branch, core.tick))
+                        core.repo, core.branch, core.tick,
+                        self._plugin.interface.painter.color))
                     core.hook_all()
 
         self._uiHooksCore = UIHooksCore(self._plugin)
@@ -91,7 +96,8 @@ class Core(Module):
                 Hooks.__init__(self, plugin)
 
             def closebase(self):
-                self._plugin.network.send_packet(Unsubscribe())
+                color = self._plugin.interface.painter.color
+                self._plugin.network.send_packet(Unsubscribe(color))
                 core.unhook_all()
                 core.repo = None
                 core.branch = None
@@ -115,17 +121,27 @@ class Core(Module):
         """
         Add the hooks to be notified of incoming IDA events.
         """
+        if self._hooked:
+            return
         self._idbHooks.hook()
         self._idpHooks.hook()
         self._hxeHooks.hook()
+        self._viewHooks.hook()
+        self._uiHooks.hook()
+        self._hooked = True
 
     def unhook_all(self):
         """
         Remove the hooks to not be notified of incoming IDA events.
         """
+        if not self._hooked:
+            return
         self._idbHooks.unhook()
         self._idpHooks.unhook()
         self._hxeHooks.unhook()
+        self._viewHooks.unhook()
+        self._uiHooks.unhook()
+        self._hooked = False
 
     @property
     def repo(self):
@@ -266,6 +282,7 @@ class Core(Module):
 
     def notify_connected(self):
         if self._repo and self._branch:
+            color = self._plugin.interface.painter.color
             self._plugin.network.send_packet(
-                Subscribe(self._repo, self._branch, self._tick))
+                Subscribe(self._repo, self._branch, self._tick, color))
             self.hook_all()

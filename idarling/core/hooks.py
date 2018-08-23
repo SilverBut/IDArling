@@ -26,6 +26,7 @@ import ida_struct
 import ida_typeinf
 
 from .events import *
+from ..shared.commands import UpdateCursors
 
 logger = logging.getLogger('IDArling.Core')
 
@@ -60,6 +61,7 @@ class IDBHooks(Hooks, ida_idp.IDB_Hooks):
     def __init__(self, plugin):
         ida_idp.IDB_Hooks.__init__(self)
         Hooks.__init__(self, plugin)
+        self.last_local_type = None
 
     def make_code(self, insn):
         self._send_event(MakeCodeEvent(insn.ea))
@@ -133,12 +135,37 @@ class IDBHooks(Hooks, ida_idp.IDB_Hooks):
                 cur_ti.deserialize(ida_typeinf.cvar.idati, type_str,
                                    fields_str)
                 type_serialized = cur_ti.serialize()
-                local_types.append((type_serialized[0],
+                local_types.append((ordinal, type_serialized[0],
                                     type_serialized[1],
                                     type_name))
             else:
                 local_types.append(None)
-        self._send_event(LocalTypesChangedEvent(local_types))
+        sent_types = []
+        if self.last_local_type is None:
+            self.last_local_type = local_types
+            sent_types = local_types
+        else:
+            def differ_local_types(types1, types2):
+                # [(i, types1, types2), ...]
+                ret_types = []
+                for i in range(max([len(types1), len(types2)])):
+                    if i >= len(types1):
+                        ret_types.append((i, None, types2[i]))
+                    elif i >= len(types2):
+                        ret_types.append((i, types1[i], None))
+                    else:
+                        if types1[i] != types2[i]:
+                            ret_types.append((i, types1[i], types2[i]))
+                return ret_types
+            diff = differ_local_types(self.last_local_type, local_types)
+            self.last_local_type = local_types
+            if len(diff) == 1 and diff[0][2] is None:
+                return 0
+            elif len(diff) == 0:
+                return 0
+            sent_types = [t[2] for t in diff]
+
+        self._send_event(LocalTypesChangedEvent(sent_types))
         return 0
 
     def op_type_changed(self, ea, n):
@@ -575,7 +602,12 @@ class HexRaysHooks(Hooks):
     def _get_tinfo(type):
         if type.empty():
             return None, None, None
-        return type.serialize()
+
+        type, fields, fldcmts = type.serialize()
+        type = Event.decode_bytes(type)
+        fields = Event.decode_bytes(fields)
+        fldcmts = Event.decode_bytes(fldcmts)
+        return type, fields, fldcmts
 
     @staticmethod
     def _get_lvar_locator(ll):
@@ -639,3 +671,61 @@ class HexRaysHooks(Hooks):
         if numforms != self._numforms:
             self._send_event(UserNumformsEvent(ea, numforms))
             self._numforms = numforms
+
+
+class ViewHooks(Hooks, ida_kernwin.View_Hooks):
+    """
+    The concrete class for View-related events.
+    """
+
+    def __init__(self, plugin):
+        ida_kernwin.View_Hooks.__init__(self)
+        Hooks.__init__(self, plugin)
+
+    def view_loc_changed(self, view, now, was):
+        if now.plce.toea() != was.plce.toea():
+            self._plugin.network.send_packet(UpdateCursors(now.plce.toea()))
+
+
+class UIHooks(Hooks, ida_kernwin.UI_Hooks):
+    """
+    The concrete class for UI-related events.
+    """
+
+    def __init__(self, plugin):
+        ida_kernwin.UI_Hooks.__init__(self)
+        Hooks.__init__(self, plugin)
+        self._state = {}
+        self._lock = False
+
+    def get_ea_hint(self, ea):
+        # TODO change IDArling team by username in the next commit
+        if self._plugin.network.connected:
+            nbytes = self._plugin.interface.painter.nbytes
+            painter = self._plugin.interface.painter
+            for infos in painter.users_positions.values():
+                address = infos['address']
+                if address - nbytes * 4 <= ea <= address + nbytes * 4:
+                    return "IDArling team"
+
+    def saving(self):
+        # clean users cursor
+        # saving and saved hook are triggered two times...
+        # This problem seems to be more general than that, we can see that the
+        # init of the plugin is called twice ... Maybe it's a problem coming
+        # from me. We need to figured it out. This bug was reproduced on IDA
+        # 7.0 on windows and IDA 7.1 on Linux
+        if not self._lock:
+            painter = self._plugin.interface.painter
+            users_positions = painter.users_positions
+            for user_position in users_positions.values():
+                address = user_position['address']
+                color = painter.clear_database(address)
+                self._state[color] = address
+        self._lock = not self._lock
+
+    def saved(self):
+        # restore users cursor
+        painter = self._plugin.interface.painter
+        for color, address in self._state.items():
+            painter.repaint_database(color, address)
