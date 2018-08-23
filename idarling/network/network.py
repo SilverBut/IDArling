@@ -81,8 +81,10 @@ class Network(Module):
         self._client = Client(self._plugin)
 
         # Do the actual connection process
-        logger.info("Connecting to %s:%d with server_ssl_mode=%d and client_ssl_mode=%d..." %
-                    (host, port, server_ssl_mode, client_ssl_mode))
+        logger.info("Connecting to %s:%d,..." %
+                    (host, port))
+        logger.info("server_ssl_mode=%d, client_ssl_mode=%d..." %
+                    (server_ssl_mode, client_ssl_mode))
         # Notify the plugin of the connection
         self._plugin.notify_connecting()
 
@@ -92,19 +94,25 @@ class Network(Module):
 
         # Prepare SSL on client side
         if server_ssl_mode == 1:
-            ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=server_ssl_cert_path)
-            logger.debug("create_default_context(cafile=%s)" % server_ssl_cert_path)
+            ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH,
+                                             cafile=server_ssl_cert_path)
+            logger.debug("create_default_context(cafile=%s)" %
+                         server_ssl_cert_path)
         elif server_ssl_mode == 2:
-            ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)  # no cafile means use sys chain
+            # no cafile means use sys chain
+            ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
         elif server_ssl_mode != 0:
-            raise ValueError("Wrong server_ssl_mode=%d when connect" % server_ssl_mode)
+            raise ValueError("Wrong server_ssl_mode=%d when connect" %
+                             server_ssl_mode)
 
         if ctx:
             if client_ssl_mode == 1:
                 ctx.load_cert_chain(certfile=client_ssl_cert_path)
-                logger.debug("load_cert_chain(certfile=%s)" % client_ssl_cert_path)
+                logger.debug("load_cert_chain(certfile=%s)" %
+                             client_ssl_cert_path)
             elif client_ssl_mode != 0:
-                raise ValueError("Wrong client_ssl_mode=%d when connect" % client_ssl_mode)
+                raise ValueError("Wrong client_ssl_mode=%d when connect" %
+                                 client_ssl_mode)
 
         # Apply ctx. Client side cert is useless without server side cert.
         if server_ssl_mode:

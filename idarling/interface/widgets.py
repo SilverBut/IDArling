@@ -102,8 +102,9 @@ class StatusWidget(QWidget):
 
         :return: the size hint
         """
-        width = self._textWidget.sizeHint().width() \
-                + 6 + self._iconWidget.sizeHint().width()
+        width = self._textWidget.sizeHint().width()
+        width += 6
+        width += self._iconWidget.sizeHint().width()
         return QSize(width, self._textWidget.sizeHint().height())
 
     def _context_menu(self, point):
@@ -154,8 +155,8 @@ class StatusWidget(QWidget):
 
             def serverActionTriggered(serverAction):
                 isConnected = self._plugin.network.connected \
-                    and server["host"] == currentServer["host"] \
-                    and server["port"] == currentServer["port"]
+                              and server["host"] == currentServer["host"] \
+                              and server["port"] == currentServer["port"]
                 self._plugin.network.stop_server()
                 if not isConnected:
                     self._plugin.network.connect(serverAction._server)

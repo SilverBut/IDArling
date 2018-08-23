@@ -502,7 +502,8 @@ class SettingsDialog(QDialog):
 
         def noNavbarColorizerActionTriggered():
             self._plugin.interface.painter.noNavbarColorizer = \
-                    noNavbarColorizerCheckbox.isChecked()
+                noNavbarColorizerCheckbox.isChecked()
+
         checkbox = noNavbarColorizerCheckbox
         checkbox.toggled.connect(noNavbarColorizerActionTriggered)
         checked = self._plugin.interface.painter.noNavbarColorizer
@@ -514,7 +515,8 @@ class SettingsDialog(QDialog):
 
         def noNotificationsActionToggled():
             self._plugin.interface.painter.noNotifications = \
-                    noNotificationsCheckbox.isChecked()
+                noNotificationsCheckbox.isChecked()
+
         noNotificationsCheckbox.toggled.connect(noNotificationsActionToggled)
         checked = self._plugin.interface.painter.noNotifications
         noNotificationsCheckbox.setChecked(checked)
@@ -552,6 +554,7 @@ class SettingsDialog(QDialog):
         def colorButtonClicked(_):
             color = QColorDialog.getColor()
             setColor(color)
+
         colorButton.clicked.connect(colorButtonClicked)
 
         colorLayout.addWidget(colorButton)
@@ -699,11 +702,15 @@ class ServerInfoDialog(QDialog):
         self._clientSSLCustomizedCertBtn.setDisabled(False)
 
     def serverSSLCustomizedCertBtnClicked(self):
-        certdir = str(QFileDialog.getOpenFileName(self, "Select Server-side Root Cert")[0])
+        certdir = str(
+            QFileDialog.getOpenFileName(self,
+                                        "Select Server-side Root Cert")[0])
         self._serverSSLCustomizedCertPath.setText(certdir)
 
     def clientSSLCustomizedCertBtnClicked(self):
-        certdir = str(QFileDialog.getOpenFileName(self, "Select Client-side Root Cert")[0])
+        certdir = str(
+            QFileDialog.getOpenFileName(self,
+                                        "Select Client-side Root Cert")[0])
         self._clientSSLCustomizedCertPath.setText(certdir)
 
     def __init__(self, plugin, title, server=None):
@@ -742,16 +749,23 @@ class ServerInfoDialog(QDialog):
 
         self._serverSSLDisabledRadiobutton = QRadioButton("Disable SSL")
         self._serverSSLDisabledRadiobutton.setChecked(True)
-        self._serverSSLDisabledRadiobutton.clicked.connect(self.serverSSLDisableCustomizedPathBtnTxt)
-        self._serverSSLDisabledRadiobutton.clicked.connect(self.clientSSLDisableAll)
+        self._serverSSLDisabledRadiobutton.clicked.connect(
+            self.serverSSLDisableCustomizedPathBtnTxt)
+        self._serverSSLDisabledRadiobutton.clicked.connect(
+            self.clientSSLDisableAll)
 
         self._serverSSLSysChainRadiobutton = QRadioButton("Use OS Trustchain")
-        self._serverSSLSysChainRadiobutton.clicked.connect(self.serverSSLDisableCustomizedPathBtnTxt)
-        self._serverSSLSysChainRadiobutton.clicked.connect(self.clientSSLEnableAll)
+        self._serverSSLSysChainRadiobutton.clicked.connect(
+            self.serverSSLDisableCustomizedPathBtnTxt)
+        self._serverSSLSysChainRadiobutton.clicked.connect(
+            self.clientSSLEnableAll)
 
-        self._serverSSLCustomizedRadiobutton = QRadioButton("Use Customized Root Cert")
-        self._serverSSLCustomizedRadiobutton.clicked.connect(self.serverSSLEnableCustomizedPathBtnTxt)
-        self._serverSSLCustomizedRadiobutton.clicked.connect(self.clientSSLEnableAll)
+        self._serverSSLCustomizedRadiobutton = QRadioButton(
+            "Use Customized Root Cert")
+        self._serverSSLCustomizedRadiobutton.clicked.connect(
+            self.serverSSLEnableCustomizedPathBtnTxt)
+        self._serverSSLCustomizedRadiobutton.clicked.connect(
+            self.clientSSLEnableAll)
 
         self._serverSSLCustomizedCertPath = QLineEdit()
         self._serverSSLCustomizedCertPath.setPlaceholderText("Cert Path")
@@ -759,7 +773,8 @@ class ServerInfoDialog(QDialog):
 
         self._serverSSLCustomizedCertBtn = QPushButton("Select Cert...")
         self._serverSSLCustomizedCertBtn.setDisabled(True)
-        self._serverSSLCustomizedCertBtn.clicked.connect(self.serverSSLCustomizedCertBtnClicked)
+        self._serverSSLCustomizedCertBtn.clicked.connect(
+            self.serverSSLCustomizedCertBtnClicked)
 
         serverSSLLayout = QVBoxLayout(self._serverSSLGroupbox)
         serverSSLLayout.addWidget(self._serverSSLDisabledRadiobutton)
@@ -772,14 +787,17 @@ class ServerInfoDialog(QDialog):
         # Add configuration for client-side SSL certs
         self._clientSSLGroupbox = QGroupBox("Client-side SSL Config")
 
-        self._clientSSLDisabledRadiobutton = QRadioButton("Disable Client Cert")
+        self._clientSSLDisabledRadiobutton = QRadioButton(
+            "Disable Client Cert")
         self._clientSSLDisabledRadiobutton.setChecked(True)
         self._clientSSLDisabledRadiobutton.setDisabled(True)
-        self._clientSSLDisabledRadiobutton.clicked.connect(self.clientSSLDisableCustomizedPathBtnTxt)
+        self._clientSSLDisabledRadiobutton.clicked.connect(
+            self.clientSSLDisableCustomizedPathBtnTxt)
 
         self._clientSSLCustomizedRadiobutton = QRadioButton("Use Client Cert")
         self._clientSSLCustomizedRadiobutton.setDisabled(True)
-        self._clientSSLCustomizedRadiobutton.clicked.connect(self.clientSSLEnableCustomizedPathBtnTxt)
+        self._clientSSLCustomizedRadiobutton.clicked.connect(
+            self.clientSSLEnableCustomizedPathBtnTxt)
 
         self._clientSSLCustomizedCertPath = QLineEdit("")
         self._clientSSLCustomizedCertPath.setDisabled(True)
@@ -787,7 +805,8 @@ class ServerInfoDialog(QDialog):
 
         self._clientSSLCustomizedCertBtn = QPushButton("Select Cert...")
         self._clientSSLCustomizedCertBtn.setDisabled(True)
-        self._clientSSLCustomizedCertBtn.clicked.connect(self.clientSSLCustomizedCertBtnClicked)
+        self._clientSSLCustomizedCertBtn.clicked.connect(
+            self.clientSSLCustomizedCertBtnClicked)
 
         clientSSLLayout = QVBoxLayout(self._clientSSLGroupbox)
         clientSSLLayout.addWidget(self._clientSSLDisabledRadiobutton)
@@ -811,8 +830,11 @@ class ServerInfoDialog(QDialog):
                 self.serverSSLEnableCustomizedPathBtnTxt()
                 self.clientSSLEnableAll()
             else:
-                raise ValueError("Wrong config of server_ssl_mode %d for host %s:%d" %
-                                 (server["server_ssl_mode"], server["host"], server["port"]))
+                raise ValueError(
+                    "Wrong config of server_ssl_mode %d for host %s:%d" %
+                    (server["server_ssl_mode"],
+                     server["host"],
+                     server["port"]))
             if server["client_ssl_mode"] == 0:
                 self._clientSSLDisabledRadiobutton.setChecked(True)
                 self.clientSSLDisableCustomizedPathBtnTxt()
@@ -820,10 +842,15 @@ class ServerInfoDialog(QDialog):
                 self._clientSSLCustomizedRadiobutton.setChecked(True)
                 self.clientSSLEnableCustomizedPathBtnTxt()
             else:
-                raise ValueError("Wrong config of client_ssl_mode %d for host %s:%d" %
-                                 (server["client_ssl_mode"], server["host"], server["port"]))
-            self._serverSSLCustomizedCertPath.setText(server["server_ssl_cert_path"])
-            self._clientSSLCustomizedCertPath.setText(server["client_ssl_cert_path"])
+                raise ValueError(
+                    "Wrong config of client_ssl_mode %d for host %s:%d" %
+                    (server["client_ssl_mode"],
+                     server["host"],
+                     server["port"]))
+            self._serverSSLCustomizedCertPath.setText(
+                server["server_ssl_cert_path"])
+            self._clientSSLCustomizedCertPath.setText(
+                server["client_ssl_cert_path"])
 
         downSide = QWidget(self)
         buttonsLayout = QHBoxLayout(downSide)
@@ -868,8 +895,10 @@ class ServerInfoDialog(QDialog):
             "host": self._serverName.text() or "127.0.0.1",
             "port": int(self._serverPort.text() or "31013"),
             "server_ssl_mode": server_ssl_mode,
-            "server_ssl_cert_path": str(self._serverSSLCustomizedCertPath.text()),
+            "server_ssl_cert_path": str(
+                self._serverSSLCustomizedCertPath.text()),
             "client_ssl_mode": client_ssl_mode,
-            "client_ssl_cert_path": str(self._clientSSLCustomizedCertPath.text())
+            "client_ssl_cert_path": str(
+                self._clientSSLCustomizedCertPath.text())
         }
         return new_server

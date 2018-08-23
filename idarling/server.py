@@ -74,7 +74,8 @@ def start(args):
     sys.excepthook = traceback.print_exception
 
     if (not args.no_client_ssl) and args.no_server_ssl:
-        raise ValueError("You should use server-side SSL if you want to use client-side SSL")
+        raise ValueError("You should use server-side SSL"
+                         "if you want to use client-side SSL")
     server_ssl_mode = 1
     server_ssl_cert_path = ""
     if args.no_server_ssl:
@@ -101,6 +102,7 @@ def start(args):
     def sigint_handler(signum, frame):
         server.stop()
         app.exit(0)
+
     signal.signal(signal.SIGINT, sigint_handler)
 
     def safe_timer(timeout, func, *args, **kwargs):
@@ -109,7 +111,9 @@ def start(args):
                 func(*args, **kwargs)
             finally:
                 QTimer.singleShot(timeout, timer_event)
+
         QTimer.singleShot(timeout, timer_event)
+
     safe_timer(50, lambda: None)
     return app.exec_()
 
@@ -125,14 +129,14 @@ def main():
                         help='the port to start listening on')
     server_security = parser.add_mutually_exclusive_group(required=True)
     server_security.add_argument('--server-ssl', type=str, nargs=1,
-                                 metavar=('server.pem'),
-                                 help='the certificate and private key file, in one PEM file')
+                                 metavar='server.pem',
+                                 help='the cert and private in one PEM file')
     server_security.add_argument('--no-server-ssl', action='store_true',
                                  help='disable server SSL (not recommended)')
 
     client_security = parser.add_mutually_exclusive_group(required=True)
     client_security.add_argument('--client-ssl', type=str, nargs=1,
-                                 metavar=('CAclient.crt'),
+                                 metavar='CAclient.crt',
                                  help='the CA or key of client certs used')
     client_security.add_argument('--no-client-ssl', action='store_true',
                                  help='disable client SSL (not recommended)')
