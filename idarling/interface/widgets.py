@@ -79,7 +79,7 @@ class StatusWidget(QWidget):
         if self._server is None:
             server = '&lt;no server&gt;'
         else:
-            server = '%s:%d' % (self._server.host, self._server.port)
+            server = '%s:%d' % (self._server["host"], self._server["port"])
         textFormat = '%s | %s -- <span style="color: %s;">%s</span>'
         self._textWidget.setText(textFormat % (self._plugin.description(),
                                                server, color, text))
@@ -149,22 +149,17 @@ class StatusWidget(QWidget):
 
             def serverActionTriggered(serverAction):
                 isConnected = self._plugin.network.connected \
-                              and server.host == currentServer.host \
-                              and server.port == currentServer.port
+                    and server["host"] == currentServer["host"] \
+                    and server["port"] == currentServer["port"]
                 self._plugin.network.stop_server()
                 if not isConnected:
-                    self._plugin.network.connect(serverAction._server.host,
-                                                 serverAction._server.port,
-                                                 serverAction._server.server_ssl_mode,
-                                                 serverAction._server.server_ssl_cert_path,
-                                                 serverAction._server.client_ssl_mode,
-                                                 serverAction._server.client_ssl_cert_path)
+                    self._plugin.network.connect(serverAction._server)
 
             for server in self._plugin.core.servers:
                 isConnected = self._plugin.network.connected \
-                              and server.host == currentServer.host \
-                              and server.port == currentServer.port
-                serverText = '%s:%d' % (server.host, server.port)
+                              and server["host"] == currentServer["host"] \
+                              and server["port"] == currentServer["port"]
+                serverText = '%s:%d' % (server["host"], server["port"])
                 serverAction = QAction(serverText, menu)
                 serverAction._server = server
                 serverAction.setCheckable(True)
