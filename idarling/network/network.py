@@ -65,14 +65,17 @@ class Network(Module):
         :param server: the server information
         :return: did the operation succeed?
         """
-        # TODO: Add data source after core is modified
         # Make sure we're not already connected
         if self.connected:
             return False
+        logger.info(server)
         self._server = server.copy()  # Copy in case of source being changed
         host = self._server["host"]
         port = self._server["port"]
-        no_ssl = self._server["port"]
+        server_ssl_mode = self._server["server_ssl_mode"]
+        client_ssl_mode = self._server["client_ssl_mode"]
+        server_ssl_cert_path = self._server["server_ssl_cert_path"]
+        client_ssl_cert_path = self._server["client_ssl_cert_path"]
 
         # Create a client
         self._client = Client(self._plugin)
@@ -177,7 +180,8 @@ class Network(Module):
         integrated_arg = {
             "host": "127.0.0.1",
             "port": server.port,
-            "no_ssl": True
+            "server_ssl_mode": False,
+            "client_ssl_mode": False
         }
         return self.connect(integrated_arg)
 

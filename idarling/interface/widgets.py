@@ -147,7 +147,6 @@ class StatusWidget(QWidget):
         menu.addAction(integrated)
 
         # Add each of the servers
-        # TODO: Add data source after core is modified
         if self._plugin.core.servers:
             menu.addSeparator()
             serverGroup = QActionGroup(self)

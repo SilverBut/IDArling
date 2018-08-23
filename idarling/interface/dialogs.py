@@ -23,6 +23,7 @@ from PyQt5.QtGui import QIcon, QRegExpValidator, QColor
 from PyQt5.QtWidgets import (QDialog, QHBoxLayout, QVBoxLayout, QGridLayout,
                              QWidget, QTableWidget, QTableWidgetItem, QLabel,
                              QPushButton, QLineEdit, QGroupBox, QMessageBox,
+                             QRadioButton, QFileDialog,
                              QCheckBox, QTabWidget, QColorDialog)
 
 from ..shared.commands import GetRepositories, GetBranches, \
@@ -668,6 +669,43 @@ class ServerInfoDialog(QDialog):
     The dialog allowing an user to add a remote server to connect to.
     """
 
+    def clientSSLDisableCustomizedPathBtnTxt(self):
+        self._clientSSLCustomizedCertPath.setDisabled(True)
+        self._clientSSLCustomizedCertBtn.setDisabled(True)
+
+    def clientSSLEnableCustomizedPathBtnTxt(self):
+        self._clientSSLCustomizedCertPath.setDisabled(False)
+        self._clientSSLCustomizedCertBtn.setDisabled(False)
+
+    def serverSSLDisableCustomizedPathBtnTxt(self):
+        self._serverSSLCustomizedCertPath.setDisabled(True)
+        self._serverSSLCustomizedCertBtn.setDisabled(True)
+
+    def serverSSLEnableCustomizedPathBtnTxt(self):
+        self._serverSSLCustomizedCertPath.setDisabled(False)
+        self._serverSSLCustomizedCertBtn.setDisabled(False)
+
+    def clientSSLDisableAll(self):
+        self._clientSSLDisabledRadiobutton.setChecked(True)
+        self._clientSSLDisabledRadiobutton.setDisabled(True)
+        self._clientSSLCustomizedRadiobutton.setDisabled(True)
+        self._clientSSLCustomizedCertPath.setDisabled(True)
+        self._clientSSLCustomizedCertBtn.setDisabled(True)
+
+    def clientSSLEnableAll(self):
+        self._clientSSLDisabledRadiobutton.setDisabled(False)
+        self._clientSSLCustomizedRadiobutton.setDisabled(False)
+        self._clientSSLCustomizedCertPath.setDisabled(False)
+        self._clientSSLCustomizedCertBtn.setDisabled(False)
+
+    def serverSSLCustomizedCertBtnClicked(self):
+        certdir = str(QFileDialog.getOpenFileName(self, "Select Server-side Root Cert")[0])
+        self._serverSSLCustomizedCertPath.setText(certdir)
+
+    def clientSSLCustomizedCertBtnClicked(self):
+        certdir = str(QFileDialog.getOpenFileName(self, "Select Client-side Root Cert")[0])
+        self._clientSSLCustomizedCertPath.setText(certdir)
+
     def __init__(self, plugin, title, server=None):
         """
         Initialize the network setting dialog.
@@ -761,7 +799,31 @@ class ServerInfoDialog(QDialog):
         if server is not None:
             self._serverName.setText(server["host"])
             self._serverPort.setText(str(server["port"]))
-            self._noSSLCheckbox.setChecked(server["no_ssl"])
+            if server["server_ssl_mode"] == 0:
+                self._serverSSLDisabledRadiobutton.setChecked(True)
+                self.clientSSLDisableAll()
+            elif server["server_ssl_mode"] == 1:
+                self._serverSSLCustomizedRadiobutton.setChecked(True)
+                self.serverSSLDisableCustomizedPathBtnTxt()
+                self.clientSSLEnableAll()
+            elif server["server_ssl_mode"] == 2:
+                self._serverSSLSysChainRadiobutton.setChecked(True)
+                self.serverSSLEnableCustomizedPathBtnTxt()
+                self.clientSSLEnableAll()
+            else:
+                raise ValueError("Wrong config of server_ssl_mode %d for host %s:%d" %
+                                 (server["server_ssl_mode"], server["host"], server["port"]))
+            if server["client_ssl_mode"] == 0:
+                self._clientSSLDisabledRadiobutton.setChecked(True)
+                self.clientSSLDisableCustomizedPathBtnTxt()
+            elif server["client_ssl_mode"] == 1:
+                self._clientSSLCustomizedRadiobutton.setChecked(True)
+                self.clientSSLEnableCustomizedPathBtnTxt()
+            else:
+                raise ValueError("Wrong config of client_ssl_mode %d for host %s:%d" %
+                                 (server["client_ssl_mode"], server["host"], server["port"]))
+            self._serverSSLCustomizedCertPath.setText(server["server_ssl_cert_path"])
+            self._clientSSLCustomizedCertPath.setText(server["client_ssl_cert_path"])
 
         downSide = QWidget(self)
         buttonsLayout = QHBoxLayout(downSide)
@@ -788,9 +850,26 @@ class ServerInfoDialog(QDialog):
 
         :return: the result
         """
+        server_ssl_mode = 0
+        if self._serverSSLDisabledRadiobutton.isChecked():
+            server_ssl_mode = 0
+        elif self._serverSSLCustomizedRadiobutton.isChecked():
+            server_ssl_mode = 1
+        elif self._serverSSLSysChainRadiobutton.isChecked():
+            server_ssl_mode = 2
+
+        client_ssl_mode = 0
+        if self._clientSSLDisabledRadiobutton.isChecked():
+            client_ssl_mode = 0
+        elif self._clientSSLCustomizedRadiobutton.isChecked():
+            client_ssl_mode = 1
+
         new_server = {
             "host": self._serverName.text() or "127.0.0.1",
             "port": int(self._serverPort.text() or "31013"),
-            "no_ssl": self._noSSLCheckbox.isChecked()
+            "server_ssl_mode": server_ssl_mode,
+            "server_ssl_cert_path": str(self._serverSSLCustomizedCertPath.text()),
+            "client_ssl_mode": client_ssl_mode,
+            "client_ssl_cert_path": str(self._clientSSLCustomizedCertPath.text())
         }
         return new_server

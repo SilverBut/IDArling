@@ -73,7 +73,28 @@ def start(args):
     app = QCoreApplication(sys.argv)
     sys.excepthook = traceback.print_exception
 
-    server = DedicatedServer(args.ssl)
+    if (not args.no_client_ssl) and args.no_server_ssl:
+        raise ValueError("You should use server-side SSL if you want to use client-side SSL")
+    server_ssl_mode = 1
+    server_ssl_cert_path = ""
+    if args.no_server_ssl:
+        server_ssl_mode = 0
+    else:
+        server_ssl_cert_path = args.server_ssl[0]
+    client_ssl_mode = 1
+    client_ssl_cert_path = ""
+    if args.no_client_ssl:
+        client_ssl_mode = 0
+    else:
+        client_ssl_cert_path = args.client_ssl[0]
+    ssl_args = {
+        "server_ssl_mode": server_ssl_mode,
+        "client_ssl_mode": client_ssl_mode,
+        "server_ssl_cert_path": server_ssl_cert_path,
+        "client_ssl_cert_path": client_ssl_cert_path
+    }
+
+    server = DedicatedServer(ssl_args)
     server.start(args.host, args.port)
 
     # Allow the use of Ctrl-C to stop the server
@@ -102,12 +123,18 @@ def main():
                         help='the hostname to start listening on')
     parser.add_argument('-p', '--port', type=int, default=31013,
                         help='the port to start listening on')
+    server_security = parser.add_mutually_exclusive_group(required=True)
+    server_security.add_argument('--server-ssl', type=str, nargs=1,
+                                 metavar=('server.pem'),
+                                 help='the certificate and private key file, in one PEM file')
+    server_security.add_argument('--no-server-ssl', action='store_true',
+                                 help='disable server SSL (not recommended)')
 
-    security = parser.add_mutually_exclusive_group(required=True)
-    security.add_argument('--ssl', type=str, nargs=2,
-                          metavar=('fullchain.pem', 'privkey.pem'),
-                          help='the certificate and private key files')
-    security.add_argument('--no-ssl', action='store_true',
-                          help='disable SSL (not recommended)')
+    client_security = parser.add_mutually_exclusive_group(required=True)
+    client_security.add_argument('--client-ssl', type=str, nargs=1,
+                                 metavar=('CAclient.crt'),
+                                 help='the CA or key of client certs used')
+    client_security.add_argument('--no-client-ssl', action='store_true',
+                                 help='disable client SSL (not recommended)')
 
     start(parser.parse_args())

@@ -249,11 +249,14 @@ class Core(Module):
     def load_state(self):
         """
         Load the state file.
-
+        server_ssl_mode or client_ssl_mode:
+            0 - Disabled
+            1 - Enabled with customized path
+            2 - Enabled with OS PKI
         The state file is now a json file in the form like this:
         { "servers" : [
-            { "host": "127.0.0.1", "port": 3389, "no_ssl": True },
-            { "host": "127.0.0.2", "port": 3389, "no_ssl": True }
+            { "host": "127.0.0.1", "port": 3389, ... },
+            { "host": "127.0.0.2", "port": 3389, ... }
             ]
         }
         """
