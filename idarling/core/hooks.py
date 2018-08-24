@@ -434,10 +434,10 @@ class IDPHooks(Hooks, ida_idp.IDP_Hooks):
 
     def ev_undefine(self, ea):
         self._send_event(UndefinedEvent(ea))
-        return 0
+        return ida_idp.IDP_Hooks.ev_undefine(self, ea)
 
-    def ev_adjust_argloc(self, *_):
-        return 0
+    def ev_adjust_argloc(self, *args):
+        return ida_idp.IDP_Hooks.ev_adjust_argloc(self, *args)
 
 
 class HexRaysHooks(Hooks):
@@ -479,6 +479,9 @@ class HexRaysHooks(Hooks):
         if event == ida_hexrays.hxe_func_printed:
             ea = ida_kernwin.get_screen_ea()
             func = ida_funcs.get_func(ea)
+            if func is None:
+                return
+
             if self._funcEA != func.startEA:
                 self._funcEA = func.startEA
                 self._labels = HexRaysHooks._get_user_labels(self._funcEA)
