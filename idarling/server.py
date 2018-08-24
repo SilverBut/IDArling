@@ -27,8 +27,9 @@ class DedicatedServer(Server):
     The dedicated server implementation.
     """
 
-    def __init__(self, ssl, parent=None):
+    def __init__(self, ssl, level, parent=None):
         logger = self.start_logging()
+        logger.setLevel(getattr(logging, level))
         Server.__init__(self, logger, ssl, parent)
 
     def local_file(self, filename):
@@ -49,7 +50,6 @@ class DedicatedServer(Server):
         logPath = os.path.join(logDir, 'idarling.%s.log' % os.getpid())
 
         # Configure the logger
-        logger.setLevel(logging.DEBUG)
         logFormat = '[%(asctime)s][%(levelname)s] %(message)s'
         formatter = logging.Formatter(fmt=logFormat, datefmt='%H:%M:%S')
 
@@ -95,7 +95,7 @@ def start(args):
         "client_ssl_cert_path": client_ssl_cert_path
     }
 
-    server = DedicatedServer(ssl_args)
+    server = DedicatedServer(ssl_args, args.level)
     server.start(args.host, args.port)
 
     # Allow the use of Ctrl-C to stop the server
@@ -140,5 +140,9 @@ def main():
                                  help='the CA or key of client certs used')
     client_security.add_argument('--no-client-ssl', action='store_true',
                                  help='disable client SSL (not recommended)')
+
+    levels = ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]
+    parser.add_argument('-l', '--level', type=str, choices=levels,
+                        default="INFO", help='the log level')
 
     start(parser.parse_args())
