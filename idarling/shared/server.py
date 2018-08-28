@@ -16,11 +16,12 @@ import socket
 import ssl
 
 from .database import Database
+from .discovery import ClientsDiscovery
 from .commands import (GetRepositories, GetBranches,
                        NewRepository, NewBranch,
                        UploadDatabase, DownloadDatabase,
                        Subscribe, Unsubscribe,
-                       UpdateCursors)
+                       UpdateCursors, RenamedUser)
 from .packets import Command, Event
 from .sockets import ClientSocket, ServerSocket
 
@@ -35,6 +36,7 @@ class ServerClient(ClientSocket):
         self._repo = None
         self._branch = None
         self._color = None
+        self._name = None
         self._handlers = {}
 
     def connect(self, sock):
@@ -61,6 +63,7 @@ class ServerClient(ClientSocket):
             Subscribe: self._handle_subscribe,
             Unsubscribe: self._handle_unsubscribe,
             UpdateCursors: self._handle_update_cursors,
+            RenamedUser: self._handle_renamed_user,
         }
 
     @property
@@ -163,6 +166,7 @@ class ServerClient(ClientSocket):
         self._repo = packet.repo
         self._branch = packet.branch
         self._color = packet.color
+        self._name = packet.name
         self.parent().register_client(self)
 
         # Send all missed events
@@ -179,13 +183,22 @@ class ServerClient(ClientSocket):
             client.send_packet(packet)
         self._repo = None
         self._branch = None
+        self._name = None
         self._color = None
 
     def _handle_update_cursors(self, packet):
         self._ea = packet.ea
         packet.color = self._color
+        # TODO:
+        # To be changed when Authentication System will be there
+        # Need an UpdateNameUser packet and UpdateColorUser packet
+        self._name = packet.name
 
         # Forward the event to the other clients
+        for client in self.parent().find_clients(self._should_forward):
+            client.send_packet(packet)
+
+    def _handle_renamed_user(self, packet):
         for client in self.parent().find_clients(self._should_forward):
             client.send_packet(packet)
 
@@ -205,6 +218,7 @@ class Server(ServerSocket):
         self._database = Database(self.local_file('database.db'))
         self._database.initialize()
         self._ssl = ssl
+        self._discovery = ClientsDiscovery(logger)
 
     def start(self, host, port=0):
         """
@@ -243,6 +257,8 @@ class Server(ServerSocket):
         sock.setblocking(0)
         sock.listen(5)
         self.connect(sock)
+        host, port = sock.getsockname()
+        self._discovery.start(host, port, self._ssl)
         return True
 
     def stop(self):
@@ -255,6 +271,7 @@ class Server(ServerSocket):
         for client in self._clients:
             client.disconnect()
         self.disconnect()
+        self._discovery.stop()
         return True
 
     @property
