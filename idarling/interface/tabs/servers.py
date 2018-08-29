@@ -13,7 +13,7 @@
 import logging
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (QHBoxLayout, QVBoxLayout, QWidget, QTableWidget,
+from PyQt5.QtWidgets import (QVBoxLayout, QWidget, QTableWidget, QHBoxLayout,
                              QTableWidgetItem, QPushButton, QTabWidget,
                              QHeaderView)
 
@@ -49,10 +49,6 @@ class _TabCfgServer:
         tab = QWidget(parent)
         layout = QVBoxLayout(tab)
 
-        topWidget = QWidget(tab)
-        topLayout = QHBoxLayout(topWidget)
-        layout.addWidget(topWidget)
-
         servers = program._plugin.config["servers"]
         program._serversTable = QTableWidget(len(servers), 2, program)
         program._serversTable.setHorizontalHeaderLabels(("Servers", ""))
@@ -85,10 +81,10 @@ class _TabCfgServer:
             program._server_double_clicked)
         minSZ = program._serversTable.minimumSize()
         program._serversTable.setMinimumSize(300, minSZ.height())
-        topLayout.addWidget(program._serversTable)
+        layout.addWidget(program._serversTable)
 
         buttonsWidget = QWidget(program)
-        buttonsLayout = QVBoxLayout(buttonsWidget)
+        buttonsLayout = QHBoxLayout(buttonsWidget)
 
         # Add server button
         program._addButton = QPushButton("Add Server")
@@ -107,10 +103,6 @@ class _TabCfgServer:
         program._deleteButton.clicked.connect(program._delete_button_clicked)
         buttonsLayout.addWidget(program._deleteButton)
 
-        topLayout.addWidget(buttonsWidget)
-
-        bottomWidget = QWidget(tab)
-        bottomLayout = QHBoxLayout(bottomWidget)
-        layout.addWidget(bottomWidget)
+        layout.addWidget(buttonsWidget)
 
         return tab
