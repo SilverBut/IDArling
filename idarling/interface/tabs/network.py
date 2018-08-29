@@ -10,17 +10,9 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-import datetime
 import logging
-from functools import partial
 
-from PyQt5.QtCore import Qt, QRegExp
-from PyQt5.QtGui import QIcon, QRegExpValidator, QColor
-from PyQt5.QtWidgets import (QDialog, QHBoxLayout, QVBoxLayout, QGridLayout,
-                             QWidget, QTableWidget, QTableWidgetItem, QLabel,
-                             QPushButton, QLineEdit, QGroupBox, QMessageBox,
-                             QCheckBox, QTabWidget, QColorDialog, QComboBox,
-                             QFormLayout, QSpinBox, QSpacerItem, QHeaderView)
+from PyQt5.QtWidgets import (QWidget, QLabel, QFormLayout, QSpinBox)
 
 logger = logging.getLogger('IDArling.Interface.TabCfgNetwork')
 

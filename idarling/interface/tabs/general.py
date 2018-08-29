@@ -11,15 +11,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 import logging
-from functools import partial
 
-from PyQt5.QtCore import Qt, QRegExp
-from PyQt5.QtGui import QIcon, QRegExpValidator, QColor
-from PyQt5.QtWidgets import (QDialog, QHBoxLayout, QVBoxLayout, QGridLayout,
-                             QWidget, QTableWidget, QTableWidgetItem, QLabel,
-                             QPushButton, QLineEdit, QGroupBox, QMessageBox,
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor
+from PyQt5.QtWidgets import (QHBoxLayout,
+                             QWidget, QLabel,
+                             QPushButton, QLineEdit,
                              QCheckBox, QTabWidget, QColorDialog, QComboBox,
-                             QFormLayout, QSpinBox, QSpacerItem, QHeaderView)
+                             QFormLayout)
 
 logger = logging.getLogger('IDArling.Interface.TabCfgGeneral')
 

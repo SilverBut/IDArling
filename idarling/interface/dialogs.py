@@ -16,19 +16,17 @@ from functools import partial
 
 import ida_loader
 import ida_nalt
-
 from PyQt5.QtCore import Qt, QRegExp
-from PyQt5.QtGui import QIcon, QRegExpValidator, QColor
+from PyQt5.QtGui import QIcon, QRegExpValidator
 from PyQt5.QtWidgets import (QDialog, QHBoxLayout, QVBoxLayout, QGridLayout,
                              QWidget, QTableWidget, QTableWidgetItem, QLabel,
                              QPushButton, QLineEdit, QGroupBox, QMessageBox,
-                             QCheckBox, QTabWidget, QColorDialog, QComboBox,
-                             QFormLayout, QSpinBox, QSpacerItem, QHeaderView)
+                             QCheckBox, QTabWidget)
 
+from .tabs import TabCfgServer, TabCfgGeneral, TabCfgNetwork
 from ..shared.commands import GetRepositories, GetBranches, \
     NewRepository, NewBranch
 from ..shared.models import Repository, Branch
-from .tabs import TabCfgServer, TabCfgGeneral, TabCfgNetwork
 
 logger = logging.getLogger('IDArling.Interface')
 
