@@ -24,7 +24,6 @@ logger = logging.getLogger('IDArling.Interface.TabCfgServer')
 
 
 class _TabCfgServer:
-
     _instance = None  # Keep instance reference
 
     def __init__(self, program, parent):
@@ -117,55 +116,4 @@ class _TabCfgServer:
         bottomLayout = QHBoxLayout(bottomWidget)
         layout.addWidget(bottomWidget)
 
-        def update_keep_alive():
-            program._plugin.save_config()
-            cnt = program._plugin.config["keep"]["cnt"]
-            intvl = program._plugin.config["keep"]["intvl"]
-            idle = program._plugin.config["keep"]["idle"]
-            if program._plugin.network.client:
-                program._plugin.network.client.set_keep_alive(cnt, intvl, idle)
-
-        keepWidget = QWidget(tab)
-        keepLayout = QFormLayout(keepWidget)
-        keepCntLabel = QLabel("Keep-Alive Count: ")
-        keepCntSpinBox = QSpinBox(keepWidget)
-        keepCntSpinBox.setRange(0, 86400)
-        keepCntSpinBox.setValue(program._plugin.config["keep"]["cnt"])
-        keepCntSpinBox.setSuffix(" packets")
-
-        def keepCntSpinBoxChanged(cnt):
-            program._plugin.config["keep"]["cnt"] = cnt
-            update_keep_alive()
-
-        keepCntSpinBox.valueChanged.connect(keepCntSpinBoxChanged)
-        keepLayout.addRow(keepCntLabel, keepCntSpinBox)
-
-        keepIntvlLabel = QLabel("Keep-Alive Interval: ")
-        keepIntvlSpinBox = QSpinBox(keepWidget)
-        keepIntvlSpinBox.setRange(0, 86400)
-        keepIntvlSpinBox.setValue(program._plugin.config["keep"]["intvl"])
-        keepIntvlSpinBox.setSuffix(" seconds")
-
-        def keepIntvlSpinBoxChanged(intvl):
-            program._plugin.config["keep"]["intvl"] = intvl
-            update_keep_alive()
-
-        keepIntvlSpinBox.valueChanged.connect(keepIntvlSpinBoxChanged)
-        keepLayout.addRow(keepIntvlLabel, keepIntvlSpinBox)
-
-        keepIdleLabel = QLabel("Keep-Alive Idle: ")
-        keepIdleSpinBox = QSpinBox(keepWidget)
-        keepIdleSpinBox.setRange(0, 86400)
-        keepIdleSpinBox.setValue(program._plugin.config["keep"]["idle"])
-        keepIdleSpinBox.setSuffix(" seconds")
-
-        def keepIdleSpinBoxChanged(idle):
-            program._plugin.config["keep"]["idle"] = idle
-            update_keep_alive()
-
-        keepIdleSpinBox.valueChanged.connect(keepIdleSpinBoxChanged)
-        keepLayout.addRow(keepIdleLabel, keepIdleSpinBox)
-        bottomLayout.addWidget(keepWidget)
-
         return tab
-

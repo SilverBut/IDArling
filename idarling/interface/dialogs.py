@@ -28,7 +28,7 @@ from PyQt5.QtWidgets import (QDialog, QHBoxLayout, QVBoxLayout, QGridLayout,
 from ..shared.commands import GetRepositories, GetBranches, \
     NewRepository, NewBranch
 from ..shared.models import Repository, Branch
-from .tabs import TabCfgServer, TabCfgGeneral
+from .tabs import TabCfgServer, TabCfgGeneral, TabCfgNetwork
 
 logger = logging.getLogger('IDArling.Interface')
 
@@ -447,9 +447,12 @@ class SettingsDialog(QDialog):
         # General Settings tab
         tab_general = TabCfgGeneral(self, tabs)
         tabs.addTab(tab_general, "General Settings")
-        # Network Settings tab
+        # Server Settings tab
         tab_servers = TabCfgServer(self, tabs)
-        tabs.addTab(tab_servers, "Network Settings")
+        tabs.addTab(tab_servers, "Server Settings")
+        # Network Settings tab
+        tab_network = TabCfgNetwork(self, tabs)
+        tabs.addTab(tab_network, "Network Settings")
 
         layout.addWidget(tabs)
 
