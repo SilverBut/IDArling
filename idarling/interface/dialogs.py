@@ -449,9 +449,12 @@ class SettingsDialog(QDialog):
         # Network Settings tab
         tab_servers = self.__tab_servers(tabs)
         tabs.addTab(tab_servers, "Network Settings")
+
         layout.addWidget(tabs)
 
-        # TODO: split save button out
+        saveButton = QPushButton("Close")
+        saveButton.clicked.connect(self.accept)
+        layout.addWidget(saveButton)
 
     def __tab_general(self, parent):
         """
@@ -530,11 +533,6 @@ class SettingsDialog(QDialog):
         debugLevelComboBox.activated.connect(debugLevelActivated)
         layout.addRow(debugLevelLabel, debugLevelComboBox)
 
-        layout.addItem(QSpacerItem(10, 10))
-        self._acceptButton = QPushButton("OK")
-        self._acceptButton.clicked.connect(self.accept)
-        layout.addRow(self._acceptButton)
-
         return tab
 
     def __tab_servers(self, parent):
@@ -608,9 +606,6 @@ class SettingsDialog(QDialog):
         buttonsLayout.addWidget(self._deleteButton)
 
         # Cancel button
-        self._quitButton = QPushButton("Close")
-        self._quitButton.clicked.connect(self.reject)
-        buttonsLayout.addWidget(self._quitButton)
         topLayout.addWidget(buttonsWidget)
 
         bottomWidget = QWidget(tab)
