@@ -439,20 +439,19 @@ class SettingsDialog(QDialog):
         iconPath = self._plugin.resource('settings.png')
         self.setWindowIcon(QIcon(iconPath))
 
-        tabs = QTabWidget(self)
+        layout = QVBoxLayout(self)
 
+        # Settings Tabs
+        tabs = QTabWidget(self)
         # General Settings tab
         tab_general = self.__tab_general(tabs)
         tabs.addTab(tab_general, "General Settings")
-
         # Network Settings tab
         tab_servers = self.__tab_servers(tabs)
         tabs.addTab(tab_servers, "Network Settings")
+        layout.addWidget(tabs)
 
-        #TODO: Fix this ugly hacking
-        self.resize(tab_servers.sizeHint().width() + 5, tab_servers.sizeHint().height() + 30)
-
-        #TODO: split save button out
+        # TODO: split save button out
 
     def __tab_general(self, parent):
         """
@@ -462,7 +461,8 @@ class SettingsDialog(QDialog):
         :return: a QWidget containing general settings
         """
         # TODO: code cleaning
-        assert(type(parent)==QTabWidget)
+        assert (type(parent) == QTabWidget)
+
         tab = QWidget(parent)
         # Set general layout
         layout = QFormLayout(tab)
@@ -474,9 +474,11 @@ class SettingsDialog(QDialog):
         display = "Disable users display in the navigation bar"
         noNavbarColorizerCheckbox = QCheckBox(display)
         layout.addRow(noNavbarColorizerCheckbox)
+
         def noNavbarColorizerActionTriggered():
             self._plugin.interface.painter.noNavbarColorizer = \
-                    noNavbarColorizerCheckbox.isChecked()
+                noNavbarColorizerCheckbox.isChecked()
+
         noNavbarColorizerCheckbox.toggled.connect(
             noNavbarColorizerActionTriggered
         )
@@ -487,9 +489,11 @@ class SettingsDialog(QDialog):
         display = "Disable notifications"
         noNotificationsCheckbox = QCheckBox(display)
         layout.addRow(noNotificationsCheckbox)
+
         def noNotificationsActionToggled():
             self._plugin.interface.painter.noNotifications = \
-                    noNotificationsCheckbox.isChecked()
+                noNotificationsCheckbox.isChecked()
+
         noNotificationsCheckbox.toggled.connect(noNotificationsActionToggled)
         checked = self._plugin.interface.painter.noNotifications
         noNotificationsCheckbox.setChecked(checked)
@@ -512,6 +516,7 @@ class SettingsDialog(QDialog):
 
             index = debugLevelComboBox.findData(logger.getEffectiveLevel())
             debugLevelComboBox.setCurrentIndex(index)
+
         debugLevelInitialized()
 
         def debugLevelActivated(index):
@@ -521,6 +526,7 @@ class SettingsDialog(QDialog):
             logger.setLevel(level)
             self._plugin.config["level"] = level
             self._plugin.save_config()
+
         debugLevelComboBox.activated.connect(debugLevelActivated)
         layout.addRow(debugLevelLabel, debugLevelComboBox)
 
@@ -531,15 +537,15 @@ class SettingsDialog(QDialog):
 
         return tab
 
-
     def __tab_servers(self, parent):
         """
         Initialize server settings in the Settings dialog
         :param parent: QTabWidget
         :return: a QWidget containing general settings
         """
+        assert (type(parent) == QTabWidget)
 
-        #TODO: code cleaning
+        # TODO: code cleaning
         tab = QWidget(parent)
         layout = QVBoxLayout(tab)
 
@@ -662,7 +668,6 @@ class SettingsDialog(QDialog):
         bottomLayout.addWidget(keepWidget)
 
         return tab
-
 
     def __tab_general_color_settings(self, parent):
         """
