@@ -38,7 +38,7 @@ class _TabCfgGeneral:
         """
         if _TabCfgGeneral._instance:
             raise ValueError("You should only create TabCfgServer once")
-            _TabCfgGeneral._instance = self
+        _TabCfgGeneral._instance = self
         self.program = program
         self.parent = parent
 
