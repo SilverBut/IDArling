@@ -542,12 +542,10 @@ class SettingsDialog(QDialog):
         #TODO: code cleaning
         tab = QWidget(parent)
         layout = QVBoxLayout(tab)
-        tab.setLayout(layout)
 
         topWidget = QWidget(tab)
+        topLayout = QHBoxLayout(topWidget)
         layout.addWidget(topWidget)
-        topLayout = QHBoxLayout(tab)
-        topWidget.setLayout(topLayout)
 
         servers = self._plugin.config["servers"]
         self._serversTable = QTableWidget(len(servers), 2, self)
@@ -610,9 +608,8 @@ class SettingsDialog(QDialog):
         topLayout.addWidget(buttonsWidget)
 
         bottomWidget = QWidget(tab)
+        bottomLayout = QHBoxLayout(bottomWidget)
         layout.addWidget(bottomWidget)
-        bottomLayout = QHBoxLayout(tab)
-        bottomWidget.setLayout(bottomLayout)
 
         def update_keep_alive():
             self._plugin.save_config()
@@ -662,7 +659,6 @@ class SettingsDialog(QDialog):
 
         keepIdleSpinBox.valueChanged.connect(keepIdleSpinBoxChanged)
         keepLayout.addRow(keepIdleLabel, keepIdleSpinBox)
-        keepWidget.setLayout(keepLayout)
         bottomLayout.addWidget(keepWidget)
 
         return tab
