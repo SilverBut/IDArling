@@ -440,14 +440,17 @@ class SettingsDialog(QDialog):
 
         layout = QVBoxLayout(self)
 
-        # Settings Tabs
+        # Settings Tabs Container
         tabs = QTabWidget(self)
+
         # General Settings tab
         tab_general = TabCfgGeneral(self, tabs)
         tabs.addTab(tab_general, "General Settings")
+
         # Server Settings tab
         tab_servers = TabCfgServer(self, tabs)
         tabs.addTab(tab_servers, "Server Settings")
+
         # Network Settings tab
         tab_network = TabCfgNetwork(self, tabs)
         tabs.addTab(tab_network, "Network Settings")
@@ -555,11 +558,9 @@ class SettingsDialog(QDialog):
 
         :return: the result
         """
-        name = self.colorLabel.text()
-        color = self._plugin.interface.painter.color
-        notifications = self._plugin.interface.painter.noNotifications
-        navbarColorizer = self._plugin.interface.painter.noNavbarColorizer
-        return name, color, notifications, navbarColorizer
+        name = self.usernameLine.text()
+        color = self.color
+        return name, color
 
 
 class ServerInfoDialog(QDialog):

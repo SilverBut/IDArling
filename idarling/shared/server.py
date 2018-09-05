@@ -21,7 +21,7 @@ from .commands import (GetRepositories, GetBranches,
                        NewRepository, NewBranch,
                        UploadDatabase, DownloadDatabase,
                        Subscribe, Unsubscribe,
-                       UpdateCursors, RenamedUser)
+                       UpdateCursors, UserRenamed, UserColorChanged)
 from .packets import Command, Event
 from .sockets import ClientSocket, ServerSocket
 
@@ -62,7 +62,8 @@ class ServerClient(ClientSocket):
             Subscribe: self._handle_subscribe,
             Unsubscribe: self._handle_unsubscribe,
             UpdateCursors: self._handle_update_cursors,
-            RenamedUser: self._handle_renamed_user,
+            UserRenamed: self._handle_user_renamed,
+            UserColorChanged: self._handle_user_color_changed,
         }
 
     @property
@@ -164,10 +165,14 @@ class ServerClient(ClientSocket):
     def _handle_subscribe(self, packet):
         self._repo = packet.repo
         self._branch = packet.branch
-        self._color = packet.color
         self._name = packet.name
+        self._color = packet.color
+        self._ea = packet.ea
         self.parent().register_client(self)
 
+        # Inform others people that we are subscribing
+        for client in self.parent().find_clients(self._should_forward):
+            client.send_packet(packet)
         # Send all missed events
         events = self.parent().database.select_events(self._repo, self._branch,
                                                       packet.tick)
@@ -186,18 +191,17 @@ class ServerClient(ClientSocket):
         self._color = None
 
     def _handle_update_cursors(self, packet):
-        self._ea = packet.ea
-        packet.color = self._color
-        # TODO:
-        # To be changed when Authentication System will be there
-        # Need an UpdateNameUser packet and UpdateColorUser packet
-        self._name = packet.name
-
-        # Forward the event to the other clients
         for client in self.parent().find_clients(self._should_forward):
             client.send_packet(packet)
 
-    def _handle_renamed_user(self, packet):
+    def _handle_user_renamed(self, packet):
+        # TODO:
+        # Check if the new_name is already used
+        self._name = packet.new_name
+        for client in self.parent().find_clients(self._should_forward):
+            client.send_packet(packet)
+
+    def _handle_user_color_changed(self, packet):
         for client in self.parent().find_clients(self._should_forward):
             client.send_packet(packet)
 

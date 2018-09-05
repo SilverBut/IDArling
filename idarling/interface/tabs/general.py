@@ -56,32 +56,33 @@ class _TabCfgGeneral:
         # Add widgets and restore settings
 
         # NavbarColorizer Checkbox
-        display = "Disable users display in the navigation bar"
-        noNavbarColorizerCheckbox = QCheckBox(display)
-        layout.addRow(noNavbarColorizerCheckbox)
+        display = "Enable users display in the navigation bar"
+        navbarColorizerCheckbox = QCheckBox(display)
+        layout.addRow(navbarColorizerCheckbox)
 
-        def noNavbarColorizerActionTriggered():
-            program._plugin.interface.painter.noNavbarColorizer = \
-                noNavbarColorizerCheckbox.isChecked()
+        def navbarColorizerActionTriggered():
+            program._plugin["user"]["navbar_colorizer"] = \
+                navbarColorizerCheckbox.isChecked()
+            program._plugin.save_config()
 
-        noNavbarColorizerCheckbox.toggled.connect(
-            noNavbarColorizerActionTriggered
-        )
-        checked = program._plugin.interface.painter.noNavbarColorizer
-        noNavbarColorizerCheckbox.setChecked(checked)
+        checkbox = navbarColorizerCheckbox
+        checkbox.toggled.connect(navbarColorizerActionTriggered)
+        checked = program._plugin.config["user"]["navbarColorizer"]
+        navbarColorizerCheckbox.setChecked(checked)
 
         # Notifications Checkbox
-        display = "Disable notifications"
-        noNotificationsCheckbox = QCheckBox(display)
-        layout.addRow(noNotificationsCheckbox)
+        display = "Enable notifications"
+        notificationsCheckbox = QCheckBox(display)
+        layout.addRow(notificationsCheckbox)
 
-        def noNotificationsActionToggled():
-            program._plugin.interface.painter.noNotifications = \
-                noNotificationsCheckbox.isChecked()
+        def notificationsActionToggled():
+            program._plugin.config["user"]["notifications"] = \
+                notificationsCheckbox.isChecked()
+            program._plugin.save_config()
 
-        noNotificationsCheckbox.toggled.connect(noNotificationsActionToggled)
-        checked = program._plugin.interface.painter.noNotifications
-        noNotificationsCheckbox.setChecked(checked)
+        notificationsCheckbox.toggled.connect(notificationsActionToggled)
+        checked = program._plugin.config["user"]["notifications"]
+        notificationsCheckbox.setChecked(checked)
 
         # Color settings
         color_settings = self.__tab_general_color_settings(tab)
@@ -139,31 +140,27 @@ class _TabCfgGeneral:
             """
             if color.isValid():
                 r, g, b, _ = color.getRgb()
-                rgbColor = r << 16 | g << 8 | b
-                # set the color as user's color
-                program._plugin.interface.painter.color = rgbColor
-                # set the background button color
-                palette = colorButton.palette()
-                role = colorButton.backgroundRole()
-                palette.setColor(role, color)
-                colorButton.setPalette(palette)
-                colorButton.setAutoFillBackground(True)
-
-        userColor = program._plugin.interface.painter.color
-        color = QColor(userColor)
-        setColor(color)
+                # IDA represents color as 0xBBGGRR
+                rgb_color_ida = b << 16 | g << 8 | r
+                # Qt represents color as 0xRRGGBB
+                rgb_color_qt = r << 16 | g << 8 | b
+                css = 'QPushButton {background-color: #%06x; color: #%06x;}' \
+                    % (rgb_color_qt, rgb_color_qt)
+                colorButton.setStyleSheet(css)
+                program.color = rgb_color_ida
 
         # Add a handler on clicking color button
-        def colorButtonClicked(_):
+        def colorButtonActivated(_):
             color = QColorDialog.getColor()
             setColor(color)
 
-        colorButton.clicked.connect(colorButtonClicked)
+        color = QColor(program._plugin.config["user"]["color"])
+        setColor(color)
+        colorButton.clicked.connect(colorButtonActivated)
         colorLayout.addWidget(colorButton)
+
         # User name
-        program.colorLabel = QLineEdit()
-        program.colorLabel.setPlaceholderText("Name")
-        name = program._plugin.interface.painter.name
-        program.colorLabel.setText(name)
-        colorLayout.addWidget(program.colorLabel)
+        program.usernameLine = QLineEdit()
+        program.usernameLine.setText(program._plugin.config["user"]["name"])
+        colorLayout.addWidget(program.usernameLine)
         return colorWidget
