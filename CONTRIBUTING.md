@@ -1,5 +1,7 @@
 ## How to contribute to IDArling
 
+*This contributing file is modified from [Ruby on Rails](https://github.com/rails/rails/blob/master/CONTRIBUTING.md)*
+
 ### Quick guidelines for commits
 
 * Write cross-platform code. IDArling is working for both macOS, Linux and Windows. Make sure you are not using things like `os.system("ls")` directly.
@@ -18,7 +20,7 @@
 
 * Ensure the PR description clearly describes the problem and solution. Include the relevant issue number if applicable.
 
-* Before submitting, please read the [Contributing to Ruby on Rails](http://edgeguides.rubyonrails.org/contributing_to_ruby_on_rails.html) guide to know more about coding conventions and benchmarks.
+* Before submitting, please read the **Quick guidelines for commits** above for coding guidelines.
 
 ### Do you intend to add a new feature or change an existing one?
 
@@ -26,9 +28,9 @@
 
 * New features or improvements will be discussed in the issue, and be sure you get enough favors before you open a new Pull Request.
 
-#### **Do you want to contribute to the Rails documentation?**
+#### **Do you want to contribute to the IDArling documentation?**
 
-* Yes, we do need many people to 
+* Yes, we do need you to write it. You can be the first one to write it!
 
 Thanks! :heart: :heart: :heart:
 
