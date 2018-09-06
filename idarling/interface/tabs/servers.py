@@ -10,14 +10,17 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-import logging
-
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (QVBoxLayout, QWidget, QTableWidget, QHBoxLayout,
-                             QTableWidgetItem, QPushButton, QTabWidget,
-                             QHeaderView)
-
-logger = logging.getLogger('IDArling.Interface.TabCfgServer')
+from PyQt5.QtWidgets import (
+    QHBoxLayout,
+    QHeaderView,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class _TabCfgServer:
@@ -43,19 +46,21 @@ class _TabCfgServer:
         parent = self.parent
         program = self.program
 
-        assert (type(parent) == QTabWidget)
+        assert type(parent) == QTabWidget
 
         # TODO: code cleaning
         tab = QWidget(parent)
         layout = QVBoxLayout(tab)
 
         program._servers = program._plugin.config["servers"]
-        program._servers_table = QTableWidget(len(program._servers), 2, program)
+        program._servers_table = QTableWidget(
+            len(program._servers), 2, program
+        )
         layout.addWidget(program._servers_table)
 
         for i, server in enumerate(program._servers):
             # Server host and port
-            item = QTableWidgetItem('%s:%d' % (server["host"], server["port"]))
+            item = QTableWidgetItem("%s:%d" % (server["host"], server["port"]))
             item.setData(Qt.UserRole, server)
             item.setFlags(item.flags() & ~Qt.ItemIsEditable)
             if program._plugin.network.server == server:

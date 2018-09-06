@@ -12,7 +12,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 import datetime
 from functools import partial
-import logging
 
 import ida_loader
 import ida_nalt
@@ -21,19 +20,14 @@ from PyQt5.QtCore import QRegExp, Qt  # noqa: I202
 from PyQt5.QtGui import QIcon, QRegExpValidator
 from PyQt5.QtWidgets import (
     QCheckBox,
-    QColorDialog,
-    QComboBox,
     QDialog,
-    QFormLayout,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
-    QHeaderView,
     QLabel,
     QLineEdit,
     QMessageBox,
     QPushButton,
-    QSpinBox,
     QTableWidget,
     QTableWidgetItem,
     QTabWidget,
@@ -41,7 +35,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-from .tabs import TabCfgServer, TabCfgGeneral, TabCfgNetwork
+from . import tabs
 from ..shared.commands import (
     GetBranches,
     GetRepositories,
@@ -402,53 +396,54 @@ class SettingsDialog(QDialog):
         self.setWindowIcon(QIcon(icon_path))
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)
 
-        windowWidget = QWidget(self)
-        windowLayout = QVBoxLayout(windowWidget)
+        window_widget = QWidget(self)
+        window_layout = QVBoxLayout(window_widget)
 
         # Settings Tabs Container
-        tabs = QTabWidget(windowWidget)
-        windowLayout.addWidget(tabs)
+        tab_widget = QTabWidget(window_widget)
+        window_layout.addWidget(tab_widget)
 
         # General Settings tab
-        tab_general = TabCfgGeneral(self, tabs)
-        tabs.addTab(tab_general, "General Settings")
+        tab_general = tabs.cfg_general(self, tab_widget)
+        tab_widget.addTab(tab_general, "General Settings")
 
         # Server Settings tab
-        tab_servers = TabCfgServer(self, tabs)
-        tabs.addTab(tab_servers, "Server Settings")
+        tab_servers = tabs.cfg_server(self, tab_widget)
+        tab_widget.addTab(tab_servers, "Server Settings")
 
         # Network Settings tab
-        tab_network = TabCfgNetwork(self, tabs)
-        tabs.addTab(tab_network, "Network Settings")
+        tab_network = tabs.cfg_network(self, tab_widget)
+        tab_widget.addTab(tab_network, "Network Settings")
 
         # Action Buttons Container
-        actionsWidget = QWidget(windowWidget)
-        actionsLayout = QHBoxLayout(actionsWidget)
-        windowLayout.addWidget(actionsWidget)
+        actions_widget = QWidget(window_widget)
+        actions_layout = QHBoxLayout(actions_widget)
+        window_layout.addWidget(actions_widget)
 
         # Save button
         def save(_):
             self._commit()
             self.accept()
-        saveButton = QPushButton("Save & Close")
-        saveButton.clicked.connect(save)
-        actionsLayout.addWidget(saveButton)
+
+        save_button = QPushButton("Save & Close")
+        save_button.clicked.connect(save)
+        actions_layout.addWidget(save_button)
 
         # Reset button
-        resetButton = QPushButton("Reset ALL to Default")
-        resetButton.clicked.connect(self._reset)
-        actionsLayout.addWidget(resetButton)
+        reset_button = QPushButton("Reset ALL to Default")
+        reset_button.clicked.connect(self._reset)
+        actions_layout.addWidget(reset_button)
 
         # Cancel button
         def cancel(_):
             self.reject()
-        cancelButton = QPushButton("Cancel")
-        cancelButton.clicked.connect(cancel)
-        actionsLayout.addWidget(cancelButton)
+
+        cancel_button = QPushButton("Cancel")
+        cancel_button.clicked.connect(cancel)
+        actions_layout.addWidget(cancel_button)
 
         self.setFixedSize(
-            windowWidget.sizeHint().width(),
-            windowWidget.sizeHint().height()
+            window_widget.sizeHint().width(), window_widget.sizeHint().height()
         )
 
     # Here we would like to provide some public methods

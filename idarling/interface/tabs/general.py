@@ -13,14 +13,18 @@
 import logging
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (QHBoxLayout,
-                             QWidget, QLabel,
-                             QPushButton, QLineEdit,
-                             QCheckBox, QTabWidget, QColorDialog, QComboBox,
-                             QFormLayout)
-
-logger = logging.getLogger('IDArling.Interface.TabCfgGeneral')
+from PyQt5.QtWidgets import (
+    QCheckBox,
+    QColorDialog,
+    QComboBox,
+    QFormLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QTabWidget,
+    QWidget,
+)
 
 
 class _TabCfgGeneral:
@@ -46,7 +50,7 @@ class _TabCfgGeneral:
         parent = self.parent
         program = self.program
         # TODO: code cleaning
-        assert (type(parent) == QTabWidget)
+        assert type(parent) == QTabWidget
 
         tab = QWidget(parent)
         # Set general layout
@@ -63,11 +67,12 @@ class _TabCfgGeneral:
         program._color_button.setFixedSize(50, 30)
 
         # Add a handler on clicking color button
-        def colorButtonActivated(_):
+        def color_button_activated(_):
             program._set_color(qt_color=QColorDialog.getColor().rgb())
+
         program._color = program._plugin.config["user"]["color"]
         program._set_color(ida_color=program._color)
-        program._color_button.clicked.connect(colorButtonActivated)
+        program._color_button.clicked.connect(color_button_activated)
         user_layout.addWidget(program._color_button)
 
         # User info settings: Name

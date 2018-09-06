@@ -10,11 +10,7 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-import logging
-
-from PyQt5.QtWidgets import (QWidget, QLabel, QFormLayout, QSpinBox)
-
-logger = logging.getLogger('IDArling.Interface.TabCfgNetwork')
+from PyQt5.QtWidgets import QFormLayout, QLabel, QSpinBox, QWidget
 
 
 class _TabCfgNetwork:
@@ -37,7 +33,9 @@ class _TabCfgNetwork:
         keep_cnt_label = QLabel("Keep-Alive Count: ")
         program._keep_cnt_spin_box = QSpinBox(tab)
         program._keep_cnt_spin_box.setRange(0, 86400)
-        program._keep_cnt_spin_box.setValue(program._plugin.config["keep"]["cnt"])
+        program._keep_cnt_spin_box.setValue(
+            program._plugin.config["keep"]["cnt"]
+        )
         program._keep_cnt_spin_box.setSuffix(" packets")
         layout.addRow(keep_cnt_label, program._keep_cnt_spin_box)
 
@@ -50,11 +48,13 @@ class _TabCfgNetwork:
         program._keep_intvl_spin_box.setSuffix(" seconds")
         layout.addRow(keep_intvl_label, program._keep_intvl_spin_box)
 
-        keepIdleLabel = QLabel("Keep-Alive Idle: ")
-        program._keep_idle_spin_box = QSpinBox(keepIdleLabel)
+        keep_idle_label = QLabel("Keep-Alive Idle: ")
+        program._keep_idle_spin_box = QSpinBox(keep_idle_label)
         program._keep_idle_spin_box.setRange(0, 86400)
-        program._keep_idle_spin_box.setValue(program._plugin.config["keep"]["idle"])
+        program._keep_idle_spin_box.setValue(
+            program._plugin.config["keep"]["idle"]
+        )
         program._keep_idle_spin_box.setSuffix(" seconds")
-        layout.addRow(keepIdleLabel, program._keep_idle_spin_box)
+        layout.addRow(keep_idle_label, program._keep_idle_spin_box)
 
         return tab
