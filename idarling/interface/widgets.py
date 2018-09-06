@@ -12,21 +12,20 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 import logging
 
-from functools import partial
-from PyQt5.QtCore import Qt, QSize, QPoint, QRect
-from PyQt5.QtGui import QPixmap, QIcon, QPainter, QRegion
-from PyQt5.QtWidgets import QWidget, QLabel, QMenu, QAction, QActionGroup
+from PyQt5.QtCore import QPoint, QRect, QSize, Qt
+from PyQt5.QtGui import QIcon, QPainter, QPixmap, QRegion
+from PyQt5.QtWidgets import QAction, QActionGroup, QLabel, QMenu, QWidget
 
 from .dialogs import SettingsDialog
-from ..shared.commands import RenamedUser
 
-logger = logging.getLogger('IDArling.Interface')
+logger = logging.getLogger("IDArling.Interface")
 
 
 class StatusWidget(QWidget):
     """
     The widget that displays the status of the connection to the server.
     """
+
     # Network States
     STATE_DISCONNECTED = 0
     STATE_CONNECTING = 1
@@ -45,20 +44,21 @@ class StatusWidget(QWidget):
         self._server = None
 
         # Create the sub-widgets
-        self._textWidget = QLabel()
-        self._textWidget.setAutoFillBackground(False)
-        self._textWidget.setAttribute(Qt.WA_PaintOnScreen)
-        self._textWidget.setAttribute(Qt.WA_TranslucentBackground)
+        self._text_widget = QLabel()
+        self._text_widget.setAutoFillBackground(False)
+        self._text_widget.setAttribute(Qt.WA_PaintOnScreen)
+        self._text_widget.setAttribute(Qt.WA_TranslucentBackground)
 
-        self._iconWidget = QLabel()
-        self._iconWidget.setAutoFillBackground(False)
-        self._iconWidget.setAttribute(Qt.WA_PaintOnScreen)
-        self._iconWidget.setAttribute(Qt.WA_TranslucentBackground)
+        self._icon_widget = QLabel()
+        self._icon_widget.setAutoFillBackground(False)
+        self._icon_widget.setAttribute(Qt.WA_PaintOnScreen)
+        self._icon_widget.setAttribute(Qt.WA_TranslucentBackground)
 
         # Set a custom context menu policy
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self._context_menu)
         self.update_widget()
+        self._settingsDialog = None
 
     def update_widget(self):
         """
@@ -68,44 +68,53 @@ class StatusWidget(QWidget):
 
         # Get color, text and icon from state
         if self._state == StatusWidget.STATE_DISCONNECTED:
-            color, text, icon = 'red', 'Disconnected', 'disconnected.png'
+            color, text, icon = "red", "Disconnected", "disconnected.png"
         elif self._state == StatusWidget.STATE_CONNECTING:
-            color, text, icon = 'orange', 'Connecting', 'connecting.png'
+            color, text, icon = "orange", "Connecting", "connecting.png"
         elif self._state == StatusWidget.STATE_CONNECTED:
-            color, text, icon = 'green', 'Connected', 'connected.png'
+            color, text, icon = "green", "Connected", "connected.png"
         else:
-            logger.warning('Invalid server state')
+            logger.warning("Invalid server state")
             return
 
         # Update the text of the widget
         if self._server is None:
-            server = '&lt;no server&gt;'
+            server = "&lt;no server&gt;"
         else:
-            server = '%s:%d' % (self._server["host"], self._server["port"])
-        textFormat = '%s | %s -- <span style="color: %s;">%s</span>'
-        self._textWidget.setText(textFormat % (self._plugin.description(),
-                                               server, color, text))
-        self._textWidget.adjustSize()
+            server = "%s:%d" % (self._server["host"], self._server["port"])
+        text_format = '%s | %s -- <span style="color: %s;">%s</span>'
+        self._text_widget.setText(
+            text_format % (self._plugin.description(), server, color, text)
+        )
+        self._text_widget.adjustSize()
 
         # Update the icon of the widget
         pixmap = QPixmap(self._plugin.resource(icon))
-        pixmapHeight = self._textWidget.sizeHint().height()
-        self._iconWidget.setPixmap(pixmap.scaled(pixmapHeight, pixmapHeight,
-                                                 Qt.KeepAspectRatio,
-                                                 Qt.SmoothTransformation))
+        pixmap_height = self._text_widget.sizeHint().height()
+        self._icon_widget.setPixmap(
+            pixmap.scaled(
+                pixmap_height,
+                pixmap_height,
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation,
+            )
+        )
 
         # Update the size of the widget
         self.updateGeometry()
 
-    def sizeHint(self):
+    def sizeHint(self):  # noqa: N802
         """
         Called when the widget size is determined.
 
         :return: the size hint
         """
-        width = self._textWidget.sizeHint().width() \
-            + 6 + self._iconWidget.sizeHint().width()
-        return QSize(width, self._textWidget.sizeHint().height())
+        width = (
+            self._text_widget.sizeHint().width()
+            + 6
+            + self._icon_widget.sizeHint().width()
+        )
+        return QSize(width, self._text_widget.sizeHint().height())
 
     def _context_menu(self, point):
         """
@@ -117,87 +126,87 @@ class StatusWidget(QWidget):
         menu = QMenu(self)
 
         # Add the settings
-        settings = QAction('Settings...', menu)
-        iconPath = self._plugin.resource('settings.png')
-        settings.setIcon(QIcon(iconPath))
-
-        def _settings_accepted(dialog):
-            name, color, notifications, navbarColorizer = dialog.get_result()
-            painter = self._plugin.interface.painter
-            if painter.name != name:
-                self._plugin.network.send_packet(RenamedUser(painter.name,
-                                                             name))
-                painter.name = name
-            self._plugin.interface.painter.name = name
+        settings = QAction("Settings...", menu)
+        icon_path = self._plugin.resource("settings.png")
+        settings.setIcon(QIcon(icon_path))
 
         # Add a handler on the action
-        def settingsActionTriggered():
-            dialog = SettingsDialog(self._plugin)
-            dialog.accepted.connect(partial(_settings_accepted, dialog))
-            dialog.exec_()
+        def settings_action_triggered():
+            if self._settingsDialog == None:
+                self._settingsDialog = SettingsDialog(self._plugin)
+            self._settingsDialog.exec_()
 
-        settings.triggered.connect(settingsActionTriggered)
+        settings.triggered.connect(settings_action_triggered)
         menu.addAction(settings)
 
         menu.addSeparator()
-        integrated = QAction('Integrated Server', menu)
+        integrated = QAction("Integrated Server", menu)
         integrated.setCheckable(True)
 
-        def integratedActionTriggered():
+        def integrated_action_triggered():
             if integrated.isChecked():
                 self._plugin.network.start_server()
             else:
                 self._plugin.network.stop_server()
+
         integrated.setChecked(self._plugin.network.server_running())
-        integrated.triggered.connect(integratedActionTriggered)
+        integrated.triggered.connect(integrated_action_triggered)
         menu.addAction(integrated)
 
         def create_servers_group(servers):
-            serversGroup = QActionGroup(self)
-            currentServer = self._plugin.network.server
+            servers_group = QActionGroup(self)
+            current_server = self._plugin.network.server
 
             for server in servers:
-                isConnected = self._plugin.network.connected \
-                              and server["host"] == currentServer["host"] \
-                              and server["port"] == currentServer["port"]
-                serverText = '%s:%d' % (server["host"], server["port"])
-                serverAction = QAction(serverText, menu)
-                serverAction._server = server
-                serverAction.setCheckable(True)
-                serverAction.setChecked(isConnected)
-                serversGroup.addAction(serverAction)
+                is_connected = (
+                    self._plugin.network.connected
+                    and server["host"] == current_server["host"]
+                    and server["port"] == current_server["port"]
+                )
+                server_text = "%s:%d" % (server["host"], server["port"])
+                server_action = QAction(server_text, menu)
+                server_action._server = server
+                server_action.setCheckable(True)
+                server_action.setChecked(is_connected)
+                servers_group.addAction(server_action)
 
-            def serverActionTriggered(serverAction):
-                wasConnected = self._plugin.network.connected \
+            def server_action_triggered(server_action):
+                was_connected = (
+                    self._plugin.network.connected
                     and self._plugin.network.server == server
+                )
                 self._plugin.network.stop_server()
                 self._plugin.network.disconnect()
-                if not wasConnected:
-                    self._plugin.network.connect(serverAction._server)
-            serversGroup.triggered.connect(serverActionTriggered)
-            return serversGroup
+                if not was_connected:
+                    self._plugin.network.connect(server_action._server)
+
+            servers_group.triggered.connect(server_action_triggered)
+
+            return servers_group
 
         # Add the discovered servers
         servers = self._plugin.network.discovery.servers
-        if self._plugin.network.server_running() \
-                and self._plugin.network.server in servers:
+        if (
+            self._plugin.network.server_running()
+            and self._plugin.network.server in servers
+        ):
             servers.remove(self._plugin.network.server)
         if servers:
             menu.addSeparator()
-            serversGroup = create_servers_group(servers)
-            menu.addActions(serversGroup.actions())
+            servers_group = create_servers_group(servers)
+            menu.addActions(servers_group.actions())
 
         # Add the configured servers
         servers = self._plugin.config["servers"]
         if self._plugin.config["servers"]:
             menu.addSeparator()
-            serversGroup = create_servers_group(servers)
-            menu.addActions(serversGroup.actions())
+            servers_group = create_servers_group(servers)
+            menu.addActions(servers_group.actions())
 
         # Show the context menu
         menu.exec_(self.mapToGlobal(point))
 
-    def paintEvent(self, event):
+    def paintEvent(self, event):  # noqa: N802
         """
         Called when the widget is painted on the window.
         """
@@ -207,13 +216,25 @@ class StatusWidget(QWidget):
         buffer.fill(Qt.transparent)
 
         painter = QPainter(buffer)
-        region = QRegion(QRect(0, 0, self._textWidget.sizeHint().width(),
-                               self._textWidget.sizeHint().height()))
-        self._textWidget.render(painter, QPoint(0, 0), region)
-        region = QRegion(QRect(0, 0, self._iconWidget.sizeHint().width(),
-                               self._iconWidget.sizeHint().height()))
-        x = self._textWidget.sizeHint().width() + 3
-        self._iconWidget.render(painter, QPoint(x, 0), region)
+        region = QRegion(
+            QRect(
+                0,
+                0,
+                self._text_widget.sizeHint().width(),
+                self._text_widget.sizeHint().height(),
+            )
+        )
+        self._text_widget.render(painter, QPoint(0, 0), region)
+        region = QRegion(
+            QRect(
+                0,
+                0,
+                self._icon_widget.sizeHint().width(),
+                self._icon_widget.sizeHint().height(),
+            )
+        )
+        x = self._text_widget.sizeHint().width() + 3
+        self._icon_widget.render(painter, QPoint(x, 0), region)
         painter.end()
 
         painter = QPainter(self)

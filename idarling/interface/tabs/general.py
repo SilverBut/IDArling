@@ -54,116 +54,53 @@ class _TabCfgGeneral:
         layout.setFormAlignment(Qt.AlignVCenter)
 
         # Add widgets and restore settings
+        user_widget = QWidget(tab)
+        user_layout = QHBoxLayout(user_widget)
+        layout.addRow(user_widget)
 
-        # NavbarColorizer Checkbox
-        display = "Disable users display in the navigation bar"
-        noNavbarColorizerCheckbox = QCheckBox(display)
-        layout.addRow(noNavbarColorizerCheckbox)
-
-        def noNavbarColorizerActionTriggered():
-            program._plugin.interface.painter.noNavbarColorizer = \
-                noNavbarColorizerCheckbox.isChecked()
-
-        noNavbarColorizerCheckbox.toggled.connect(
-            noNavbarColorizerActionTriggered
-        )
-        checked = program._plugin.interface.painter.noNavbarColorizer
-        noNavbarColorizerCheckbox.setChecked(checked)
-
-        # Notifications Checkbox
-        display = "Disable notifications"
-        noNotificationsCheckbox = QCheckBox(display)
-        layout.addRow(noNotificationsCheckbox)
-
-        def noNotificationsActionToggled():
-            program._plugin.interface.painter.noNotifications = \
-                noNotificationsCheckbox.isChecked()
-
-        noNotificationsCheckbox.toggled.connect(noNotificationsActionToggled)
-        checked = program._plugin.interface.painter.noNotifications
-        noNotificationsCheckbox.setChecked(checked)
-
-        # Color settings
-        color_settings = self.__tab_general_color_settings(tab)
-        layout.addWidget(color_settings)
-
-        # Debug Level settings
-        debugLevelLabel = QLabel("Log Level: ")
-        debugLevelComboBox = QComboBox()
-        debugLevelComboBox.addItem("CRITICAL", logging.CRITICAL)
-        debugLevelComboBox.addItem("ERROR", logging.ERROR)
-        debugLevelComboBox.addItem("WARNING", logging.WARNING)
-        debugLevelComboBox.addItem("INFO", logging.INFO)
-        debugLevelComboBox.addItem("DEBUG", logging.DEBUG)
-
-        def debugLevelInitialized():
-            from idarling.plugin import logger
-
-            index = debugLevelComboBox.findData(logger.getEffectiveLevel())
-            debugLevelComboBox.setCurrentIndex(index)
-
-        debugLevelInitialized()
-
-        def debugLevelActivated(index):
-            from idarling.plugin import logger
-
-            level = debugLevelComboBox.itemData(index)
-            logger.setLevel(level)
-            program._plugin.config["level"] = level
-            program._plugin.save_config()
-
-        debugLevelComboBox.activated.connect(debugLevelActivated)
-        layout.addRow(debugLevelLabel, debugLevelComboBox)
-
-        return tab
-
-    def __tab_general_color_settings(self, parent):
-        """
-        Initialize color settings in the General Settings tab
-        :param parent: Parent QWidget
-        :return:
-        """
-        program = self.program
-        # Add User Color settings
-        colorWidget = QWidget(parent)
-        colorLayout = QHBoxLayout(colorWidget)
-
-        colorButton = QPushButton("")
-        colorButton.setFixedSize(50, 30)
-
-        def setColor(color):
-            """
-            Sets the color (if valid) as user's color
-
-            :param color: the color
-            """
-            if color.isValid():
-                r, g, b, _ = color.getRgb()
-                rgbColor = r << 16 | g << 8 | b
-                # set the color as user's color
-                program._plugin.interface.painter.color = rgbColor
-                # set the background button color
-                palette = colorButton.palette()
-                role = colorButton.backgroundRole()
-                palette.setColor(role, color)
-                colorButton.setPalette(palette)
-                colorButton.setAutoFillBackground(True)
-
-        userColor = program._plugin.interface.painter.color
-        color = QColor(userColor)
-        setColor(color)
+        # User info settings: Color
+        program._color_button = QPushButton("")
+        program._color_button.setFixedSize(50, 30)
 
         # Add a handler on clicking color button
-        def colorButtonClicked(_):
-            color = QColorDialog.getColor()
-            setColor(color)
+        def colorButtonActivated(_):
+            program._set_color(qt_color = QColorDialog.getColor().rgb())
+        program._color = program._plugin.config["user"]["color"]
+        program._set_color(ida_color = program._color)
+        program._color_button.clicked.connect(colorButtonActivated)
+        user_layout.addWidget(program._color_button)
 
-        colorButton.clicked.connect(colorButtonClicked)
-        colorLayout.addWidget(colorButton)
-        # User name
-        program.colorLabel = QLineEdit()
-        program.colorLabel.setPlaceholderText("Name")
-        name = program._plugin.interface.painter.name
-        program.colorLabel.setText(name)
-        colorLayout.addWidget(program.colorLabel)
-        return colorWidget
+        # User info settings: Name
+        program._name_line_edit = QLineEdit()
+        name = program._plugin.config["user"]["name"]
+        program._name_line_edit.setText(name)
+        user_layout.addWidget(program._name_line_edit)
+
+        # User info settings: Notifications and Cursors
+        text = "Show other users in the navigation bar"
+        program._navbar_colorizer_checkbox = QCheckBox(text)
+        layout.addRow(program._navbar_colorizer_checkbox)
+        checked = program._plugin.config["user"]["navbar_colorizer"]
+        program._navbar_colorizer_checkbox.setChecked(checked)
+
+        text = "Allow other users to send notifications"
+        program._notifications_checkbox = QCheckBox(text)
+        layout.addRow(program._notifications_checkbox)
+        checked = program._plugin.config["user"]["notifications"]
+        program._notifications_checkbox.setChecked(checked)
+
+        # User info settings: Debug Level
+        debug_level_label = QLabel("Log Level: ")
+        program._debug_level_combo_box = QComboBox()
+        program._debug_level_combo_box.addItem("CRITICAL", logging.CRITICAL)
+        program._debug_level_combo_box.addItem("ERROR", logging.ERROR)
+        program._debug_level_combo_box.addItem("WARNING", logging.WARNING)
+        program._debug_level_combo_box.addItem("INFO", logging.INFO)
+        program._debug_level_combo_box.addItem("DEBUG", logging.DEBUG)
+        program._debug_level_combo_box.addItem("TRACE", logging.TRACE)
+        level = program._plugin.config["level"]
+        index = program._debug_level_combo_box.findData(level)
+        program._debug_level_combo_box.setCurrentIndex(index)
+        layout.addRow(debug_level_label, program._debug_level_combo_box)
+
+        return tab

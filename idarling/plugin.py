@@ -10,14 +10,16 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+import colorsys
 import json
 import logging
 import os
+import random
 
 import ida_idaapi
 import ida_kernwin
 
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtCore import QCoreApplication  # noqa: I202
 
 from .core.core import Core
 from .interface.interface import Interface
@@ -33,6 +35,7 @@ class Plugin(ida_idaapi.plugin_t):
     """
     The IDArling plugin.
     """
+
     # Internal definitions
     PLUGIN_NAME = "IDArling"
     PLUGIN_VERSION = "0.0.1"
@@ -52,8 +55,7 @@ class Plugin(ida_idaapi.plugin_t):
 
         :return: the description
         """
-        return "{} v{}".format(Plugin.PLUGIN_NAME,
-                               Plugin.PLUGIN_VERSION)
+        return "{} v{}".format(Plugin.PLUGIN_NAME, Plugin.PLUGIN_VERSION)
 
     @staticmethod
     def resource(filename):
@@ -77,15 +79,7 @@ class Plugin(ida_idaapi.plugin_t):
         self._network = Network(self)
 
         # Configuration
-        self._config = {
-            "level": logging.INFO,
-            "servers": [],
-            "keep": {
-                "cnt": 4,
-                "intvl": 15,
-                "idle": 240,
-            }
-        }
+        self._config = self.default_config()
 
     @property
     def core(self):
@@ -192,6 +186,21 @@ class Plugin(ida_idaapi.plugin_t):
         """
         return self._config
 
+    def default_config(self):
+        r, g, b = colorsys.hls_to_rgb(random.random(), 0.5, 1.0)
+        color = int(b * 255) << 16 | int(g * 255) << 8 | int(r * 255)
+        return {
+            "level": logging.INFO,
+            "servers": [],
+            "keep": {"cnt": 4, "intvl": 15, "idle": 240},
+            "user": {
+                "color": color,
+                "name": "Undefined",
+                "navbar_colorizer": True,
+                "notifications": True,
+            },
+        }
+
     def load_config(self):
         """
         Load the config file.
@@ -203,12 +212,12 @@ class Plugin(ida_idaapi.plugin_t):
             ]
         }
         """
-        configPath = local_resource('files', 'config.json')
-        if not os.path.isfile(configPath):
+        config_path = local_resource("files", "config.json")
+        if not os.path.isfile(config_path):
             return
-        with open(configPath, 'rb') as configFile:
+        with open(config_path, "rb") as config_file:
             try:
-                self._config.update(json.loads(configFile.read()))
+                self._config.update(json.loads(config_file.read()))
             except ValueError:
                 logger.warning("Couldn't load config file")
                 return
@@ -219,10 +228,10 @@ class Plugin(ida_idaapi.plugin_t):
         """
         Save the config file.
         """
-        configPath = local_resource('files', 'config.json')
-        with open(configPath, 'wb') as configFile:
+        config_path = local_resource("files", "config.json")
+        with open(config_path, "wb") as config_file:
             logger.debug("Saved config: %s" % self._config)
-            configFile.write(json.dumps(self._config))
+            config_file.write(json.dumps(self._config))
 
     def notify_disconnected(self):
         """

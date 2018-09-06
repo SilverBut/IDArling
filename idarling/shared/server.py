@@ -15,13 +15,22 @@ import os
 import socket
 import ssl
 
+from .commands import (
+    DownloadDatabase,
+    GetBranches,
+    GetRepositories,
+    InviteTo,
+    NewBranch,
+    NewRepository,
+    Subscribe,
+    Unsubscribe,
+    UpdateCursors,
+    UploadDatabase,
+    UserColorChanged,
+    UserRenamed,
+)
 from .database import Database
 from .discovery import ClientsDiscovery
-from .commands import (GetRepositories, GetBranches,
-                       NewRepository, NewBranch,
-                       UploadDatabase, DownloadDatabase,
-                       Subscribe, Unsubscribe,
-                       UpdateCursors, RenamedUser)
 from .packets import Command, Event
 from .sockets import ClientSocket, ServerSocket
 
@@ -43,11 +52,12 @@ class ServerClient(ClientSocket):
         ClientSocket.connect(self, sock)
 
         # Add host and port as a prefix to our logger
-        prefix = '%s:%d' % sock.getpeername()
+        prefix = "%s:%d" % sock.getpeername()
 
         class CustomAdapter(logging.LoggerAdapter):
             def process(self, msg, kwargs):
-                return '(%s) %s' % (prefix, msg), kwargs
+                return "(%s) %s" % (prefix, msg), kwargs
+
         self._logger = CustomAdapter(self._logger, {})
         self._logger.info("Connected")
 
@@ -61,8 +71,10 @@ class ServerClient(ClientSocket):
             DownloadDatabase.Query: self._handle_download_database,
             Subscribe: self._handle_subscribe,
             Unsubscribe: self._handle_unsubscribe,
+            InviteTo: self._handle_invite_to,
             UpdateCursors: self._handle_update_cursors,
-            RenamedUser: self._handle_renamed_user,
+            UserRenamed: self._handle_user_renamed,
+            UserColorChanged: self._handle_user_color_changed,
         }
 
     @property
@@ -96,7 +108,8 @@ class ServerClient(ClientSocket):
         elif isinstance(packet, Event):
             if not self._repo or not self._branch:
                 self._logger.warning(
-                    "Received a packet from an unsubscribed client")
+                    "Received a packet from an unsubscribed client"
+                )
                 return True
 
             # Check for de-synchronization
@@ -122,11 +135,11 @@ class ServerClient(ClientSocket):
     def _handle_get_branches(self, query):
         branches = self.parent().database.select_branches(query.repo)
         for branch in branches:
-            branchInfo = branch.repo, branch.name
-            fileName = '%s_%s.idb' % branchInfo
-            filePath = self.parent().local_file(fileName)
-            if os.path.isfile(filePath):
-                branch.tick = self.parent().database.last_tick(*branchInfo)
+            branch_info = branch.repo, branch.name
+            file_name = "%s_%s.idb" % branch_info
+            file_path = self.parent().local_file(file_name)
+            if os.path.isfile(file_path):
+                branch.tick = self.parent().database.last_tick(*branch_info)
             else:
                 branch.tick = -1
         self.send_packet(GetBranches.Reply(query, branches))
@@ -141,37 +154,42 @@ class ServerClient(ClientSocket):
 
     def _handle_upload_database(self, query):
         branch = self.parent().database.select_branch(query.repo, query.branch)
-        fileName = '%s_%s.idb' % (branch.repo, branch.name)
-        filePath = self.parent().local_file(fileName)
+        file_name = "%s_%s.idb" % (branch.repo, branch.name)
+        file_path = self.parent().local_file(file_name)
 
         # Write the file received to disk
-        with open(filePath, 'wb') as outputFile:
-            outputFile.write(query.content)
-        self._logger.info("Saved file %s" % fileName)
+        with open(file_path, "wb") as output_file:
+            output_file.write(query.content)
+        self._logger.info("Saved file %s" % file_name)
         self.send_packet(UploadDatabase.Reply(query))
 
     def _handle_download_database(self, query):
         branch = self.parent().database.select_branch(query.repo, query.branch)
-        fileName = '%s_%s.idb' % (branch.repo, branch.name)
-        filePath = self.parent().local_file(fileName)
+        file_name = "%s_%s.idb" % (branch.repo, branch.name)
+        file_path = self.parent().local_file(file_name)
 
         # Read file from disk and sent it
         reply = DownloadDatabase.Reply(query)
-        with open(filePath, 'rb') as inputFile:
-            reply.content = inputFile.read()
+        with open(file_path, "rb") as input_file:
+            reply.content = input_file.read()
         self.send_packet(reply)
 
     def _handle_subscribe(self, packet):
         self._repo = packet.repo
         self._branch = packet.branch
-        self._color = packet.color
         self._name = packet.name
+        self._color = packet.color
+        self._ea = packet.ea
         self.parent().register_client(self)
 
+        # Inform others people that we are subscribing
+        for client in self.parent().find_clients(self._should_forward):
+            client.send_packet(packet)
         # Send all missed events
-        events = self.parent().database.select_events(self._repo, self._branch,
-                                                      packet.tick)
-        self._logger.debug('Sending %d missed events' % len(events))
+        events = self.parent().database.select_events(
+            self._repo, self._branch, packet.tick
+        )
+        self._logger.debug("Sending %d missed events" % len(events))
         for event in events:
             self.send_packet(event)
 
@@ -185,25 +203,33 @@ class ServerClient(ClientSocket):
         self._name = None
         self._color = None
 
-    def _handle_update_cursors(self, packet):
-        self._ea = packet.ea
-        packet.color = self._color
-        # TODO:
-        # To be changed when Authentication System will be there
-        # Need an UpdateNameUser packet and UpdateColorUser packet
-        self._name = packet.name
+    def _handle_invite_to(self, packet):
+        for client in self.parent().find_clients(self._should_forward):
+            if client._name == packet.name or packet.name == "everyone":
+                packet.name = self._name
+                client.send_packet(packet)
 
-        # Forward the event to the other clients
+    def _handle_update_cursors(self, packet):
         for client in self.parent().find_clients(self._should_forward):
             client.send_packet(packet)
 
-    def _handle_renamed_user(self, packet):
+    def _handle_user_renamed(self, packet):
+        # TODO:
+        # Check if the new_name is already used
+        self._name = packet.new_name
+        for client in self.parent().find_clients(self._should_forward):
+            client.send_packet(packet)
+
+    def _handle_user_color_changed(self, packet):
         for client in self.parent().find_clients(self._should_forward):
             client.send_packet(packet)
 
     def _should_forward(self, client):
-        return client.repo == self._repo \
-                and client.branch == self._branch and client != self
+        return (
+            client.repo == self._repo
+            and client.branch == self._branch
+            and client != self
+        )
 
 
 class Server(ServerSocket):
@@ -211,10 +237,21 @@ class Server(ServerSocket):
     The server implementation used by dedicated and integrated.
     """
 
+    @staticmethod
+    def add_trace_level():
+        logging.TRACE = 5
+        logging.addLevelName(logging.TRACE, "TRACE")
+        logging.Logger.trace = lambda inst, msg, *args, **kwargs: inst.log(
+            logging.TRACE, msg, *args, **kwargs
+        )
+        logging.trace = lambda msg, *args, **kwargs: logging.log(
+            logging.TRACE, msg, *args, **kwargs
+        )
+
     def __init__(self, logger, ssl, parent=None):
         ServerSocket.__init__(self, logger, parent)
         self._clients = []
-        self._database = Database(self.local_file('database.db'))
+        self._database = Database(self.local_file("database.db"))
         self._database.initialize()
         self._ssl = ssl
         self._discovery = ClientsDiscovery(logger)

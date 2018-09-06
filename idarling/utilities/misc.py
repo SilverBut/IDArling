@@ -14,7 +14,7 @@ import os
 
 import ida_diskio
 
-LOCAL_PATH = os.path.join(ida_diskio.get_user_idadir(), 'idarling')
+LOCAL_PATH = os.path.join(ida_diskio.get_user_idadir(), "idarling")
 
 
 def local_resource(dirname, filename):
@@ -25,13 +25,13 @@ def local_resource(dirname, filename):
     :param filename: the file name
     :return: the path of the resource
     """
-    resDir = os.path.join(LOCAL_PATH, dirname)
-    if not os.path.exists(resDir):
-        os.makedirs(resDir)
-    return os.path.join(resDir, filename)
+    res_dir = os.path.join(LOCAL_PATH, dirname)
+    if not os.path.exists(res_dir):
+        os.makedirs(res_dir)
+    return os.path.join(res_dir, filename)
 
 
-PLUGIN_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+PLUGIN_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 
 def plugin_resource(filename):
@@ -41,4 +41,4 @@ def plugin_resource(filename):
     :param filename: the filename
     :return: the path of the resource
     """
-    return os.path.join(PLUGIN_PATH, 'resources', filename)
+    return os.path.join(PLUGIN_PATH, "resources", filename)

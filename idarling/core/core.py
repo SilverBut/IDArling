@@ -16,32 +16,32 @@ import ida_idp
 import ida_kernwin
 import ida_netnode
 
+from .hooks import HexRaysHooks, Hooks, IDBHooks, IDPHooks, UIHooks, ViewHooks
 from ..module import Module
 from ..shared.commands import Subscribe, Unsubscribe
 
-from .hooks import Hooks, IDBHooks, IDPHooks, HexRaysHooks, ViewHooks, UIHooks
-
-logger = logging.getLogger('IDArling.Core')
+logger = logging.getLogger("IDArling.Core")
 
 
 class Core(Module):
     """
     The core module, responsible for all interactions with the IDA kernel.
     """
-    NETNODE_NAME = '$ idarling'
+
+    NETNODE_NAME = "$ idarling"
 
     def __init__(self, plugin):
         super(Core, self).__init__(plugin)
         self._hooked = False
 
-        self._idbHooks = None
-        self._idpHooks = None
-        self._hxeHooks = None
-        self._viewHooks = None
-        self._uiHooks = None
+        self._idb_hooks = None
+        self._idp_hooks = None
+        self._hxe_hooks = None
+        self._view_hooks = None
+        self._ui_hooks = None
 
-        self._uiHooksCore = None
-        self._idbHooksCore = None
+        self._ui_hooks_core = None
+        self._idb_hooks_core = None
 
         # Database members
         self._repo = None
@@ -52,11 +52,11 @@ class Core(Module):
         logger.debug("Installing hooks")
         core = self
 
-        self._idbHooks = IDBHooks(self._plugin)
-        self._idpHooks = IDPHooks(self._plugin)
-        self._hxeHooks = HexRaysHooks(self._plugin)
-        self._viewHooks = ViewHooks(self._plugin)
-        self._uiHooks = UIHooks(self._plugin)
+        self._idb_hooks = IDBHooks(self._plugin)
+        self._idp_hooks = IDPHooks(self._plugin)
+        self._hxe_hooks = HexRaysHooks(self._plugin)
+        self._view_hooks = ViewHooks(self._plugin)
+        self._ui_hooks = UIHooks(self._plugin)
 
         class UIHooksCore(Hooks, ida_kernwin.UI_Hooks):
             """
@@ -72,14 +72,20 @@ class Core(Module):
 
                 # Subscribe to the events stream if needed
                 if core.repo and core.branch:
-                    self._plugin.network.send_packet(Subscribe(
-                        core.repo, core.branch, core.tick,
-                        self._plugin.interface.painter.color,
-                        self._plugin.interface.painter.name))
+                    self._plugin.network.send_packet(
+                        Subscribe(
+                            core.repo,
+                            core.branch,
+                            core.tick,
+                            self._plugin.config["user"]["name"],
+                            self._plugin.config["user"]["color"],
+                            ida_kernwin.get_screen_ea(),
+                        )
+                    )
                     core.hook_all()
 
-        self._uiHooksCore = UIHooksCore(self._plugin)
-        self._uiHooksCore.hook()
+        self._ui_hooks_core = UIHooksCore(self._plugin)
+        self._ui_hooks_core.hook()
 
         class IDBHooksCore(Hooks, ida_idp.IDB_Hooks):
             """
@@ -91,7 +97,7 @@ class Core(Module):
                 Hooks.__init__(self, plugin)
 
             def closebase(self):
-                name = self._plugin.interface.painter.name
+                name = self._plugin.config["user"]["name"]
                 self._plugin.network.send_packet(Unsubscribe(name))
                 core.unhook_all()
                 core.repo = None
@@ -99,14 +105,14 @@ class Core(Module):
                 core.ticks = 0
                 return 0
 
-        self._idbHooksCore = IDBHooksCore(self._plugin)
-        self._idbHooksCore.hook()
+        self._idb_hooks_core = IDBHooksCore(self._plugin)
+        self._idb_hooks_core.hook()
         return True
 
     def _uninstall(self):
         logger.debug("Uninstalling hooks")
-        self._idbHooksCore.unhook()
-        self._uiHooksCore.unhook()
+        self._idb_hooks_core.unhook()
+        self._ui_hooks_core.unhook()
         self.unhook_all()
         return True
 
@@ -116,11 +122,11 @@ class Core(Module):
         """
         if self._hooked:
             return
-        self._idbHooks.hook()
-        self._idpHooks.hook()
-        self._hxeHooks.hook()
-        self._viewHooks.hook()
-        self._uiHooks.hook()
+        self._idb_hooks.hook()
+        self._idp_hooks.hook()
+        self._hxe_hooks.hook()
+        self._view_hooks.hook()
+        self._ui_hooks.hook()
         self._hooked = True
 
     def unhook_all(self):
@@ -129,11 +135,11 @@ class Core(Module):
         """
         if not self._hooked:
             return
-        self._idbHooks.unhook()
-        self._idpHooks.unhook()
-        self._hxeHooks.unhook()
-        self._viewHooks.unhook()
-        self._uiHooks.unhook()
+        self._idb_hooks.unhook()
+        self._idp_hooks.unhook()
+        self._hxe_hooks.unhook()
+        self._view_hooks.unhook()
+        self._ui_hooks.unhook()
         self._hooked = False
 
     @property
@@ -198,12 +204,14 @@ class Core(Module):
         Load members from the custom netnode.
         """
         node = ida_netnode.netnode(Core.NETNODE_NAME, 0, True)
-        self._repo = node.hashval('repo') or None
-        self._branch = node.hashval('branch') or None
-        self._tick = int(node.hashval('tick') or '0')
+        self._repo = node.hashval("repo") or None
+        self._branch = node.hashval("branch") or None
+        self._tick = int(node.hashval("tick") or "0")
 
-        logger.debug("Loaded netnode: repo=%s, branch=%s, tick=%d"
-                     % (self._repo, self._branch, self._tick))
+        logger.debug(
+            "Loaded netnode: repo=%s, branch=%s, tick=%d"
+            % (self._repo, self._branch, self._tick)
+        )
 
     def save_netnode(self):
         """
@@ -211,19 +219,25 @@ class Core(Module):
         """
         node = ida_netnode.netnode(Core.NETNODE_NAME, 0, True)
         if self._repo:
-            node.hashset('repo', str(self._repo))
+            node.hashset("repo", str(self._repo))
         if self._branch:
-            node.hashset('branch', str(self._branch))
+            node.hashset("branch", str(self._branch))
         if self._tick:
-            node.hashset('tick', str(self._tick))
+            node.hashset("tick", str(self._tick))
 
-        logger.debug("Saved netnode: repo=%s, branch=%s, tick=%d"
-                     % (self._repo, self._branch, self._tick))
+        logger.debug(
+            "Saved netnode: repo=%s, branch=%s, tick=%d"
+            % (self._repo, self._branch, self._tick)
+        )
 
     def notify_connected(self):
         if self._repo and self._branch:
-            color = self._plugin.interface.painter.color
-            name = self._plugin.interface.painter.name
+            name = self._plugin.config["user"]["name"]
+            color = self._plugin.config["user"]["color"]
+            ea = ida_kernwin.get_screen_ea()
             self._plugin.network.send_packet(
-                Subscribe(self._repo, self._branch, self._tick, color, name))
+                Subscribe(
+                    self._repo, self._branch, self._tick, name, color, ea
+                )
+            )
             self.hook_all()

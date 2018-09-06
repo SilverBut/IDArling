@@ -10,6 +10,7 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+import platform
 import socket
 
 from PyQt5.QtCore import QObject, QSocketNotifier, QTimer
@@ -68,29 +69,29 @@ class ClientsDiscovery(QObject):
         self._timer.stop()
 
     def _send_request(self):
-        self._logger.debug("Sending discovery request...")
+        self._logger.trace("Sending discovery request...")
         request = DISCOVERY_REQUEST + " " + self._info
         request = request.encode("utf-8")
         while len(request):
             try:
                 sent = self._socket.sendto(request, ("<broadcast>", 31013))
+                request = request[sent:]
             except socket.error:
                 self._logger.warning("Couldn't send discovery request")
-            request = request[sent:]
 
     def _notify_read(self):
         response, address = self._socket.recvfrom(4096)
         response = response.decode("utf-8")
         if response == DISCOVERY_REPLY:
-            self._logger.debug("Received discovery reply from %s:%d" % address)
+            self._logger.trace("Received discovery reply from %s:%d" % address)
 
 
 class ServersDiscovery(QObject):
     def __init__(self, logger, parent=None):
         super(ServersDiscovery, self).__init__(parent)
         self._logger = logger
-        self._active = []
         self._servers = []
+        self._new_servers = []
 
         self._socket = None
         self._read_notifier = None
@@ -112,6 +113,8 @@ class ServersDiscovery(QObject):
         self._logger.debug("Starting servers discovery....")
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        if platform.system() == "Darwin":
+            self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self._socket.bind(("", 31013))
         self._socket.settimeout(0)
         self._socket.setblocking(0)
@@ -139,24 +142,24 @@ class ServersDiscovery(QObject):
         request, address = self._socket.recvfrom(4096)
         request = request.decode("utf-8")
         if request.startswith(DISCOVERY_REQUEST):
-            self._logger.debug(
+            self._logger.trace(
                 "Received discovery request from %s:%d" % address
             )
             _, host, port, ssl = request.split()
             server = {"host": host, "port": int(port), "no_ssl": ssl != "True"}
-            if server not in self._active:
-                self._active.append(server)
             if server not in self._servers:
                 self._servers.append(server)
-            self._logger.debug("Server discovered: %s" % server)
-            self._logger.debug("Sending discovery reply to %s:%d..." % address)
+            if server not in self._new_servers:
+                self._new_servers.append(server)
+            self._logger.trace("Server discovered: %s" % server)
+            self._logger.trace("Sending discovery reply to %s:%d..." % address)
             reply = DISCOVERY_REPLY
             reply = reply.encode("utf-8")
             self._socket.sendto(reply, address)
 
     def _trim_replies(self):
-        self._logger.debug(
+        self._logger.trace(
             "Discovered %d servers: %s" % (len(self.servers), self.servers)
         )
-        self._servers = self._active
-        self._active = []
+        self._servers = self._new_servers
+        self._new_servers = []
