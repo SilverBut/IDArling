@@ -57,6 +57,7 @@ class StatusWidget(QWidget):
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self._context_menu)
         self.update_widget()
+        self._settingsDialog = None
 
     def update_widget(self):
         """
@@ -121,7 +122,9 @@ class StatusWidget(QWidget):
 
         # Add a handler on the action
         def settingsActionTriggered():
-            SettingsDialog(self._plugin).exec_()
+            if self._settingsDialog == None:
+                self._settingsDialog = SettingsDialog(self._plugin)
+            self._settingsDialog.exec_()
         settings.triggered.connect(settingsActionTriggered)
         menu.addAction(settings)
 
