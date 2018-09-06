@@ -54,6 +54,7 @@ class _TabCfgServer:
         layout.addWidget(program._servers_table)
 
         for i, server in enumerate(program._servers):
+            # Server host and port
             item = QTableWidgetItem('%s:%d' % (server["host"], server["port"]))
             item.setData(Qt.UserRole, server)
             item.setFlags(item.flags() & ~Qt.ItemIsEditable)
@@ -61,6 +62,7 @@ class _TabCfgServer:
                 item.setFlags((item.flags() & ~Qt.ItemIsSelectable))
             program._servers_table.setItem(i, 0, item)
 
+            # Is SSL enabled for server
             checkbox = QTableWidgetItem()
             state = Qt.Unchecked if server["no_ssl"] else Qt.Checked
             checkbox.setCheckState(state)
@@ -78,8 +80,10 @@ class _TabCfgServer:
         program._servers_table.verticalHeader().setVisible(False)
         program._servers_table.setSelectionBehavior(QTableWidget.SelectRows)
         program._servers_table.setSelectionMode(QTableWidget.SingleSelection)
-        program._servers_table.itemClicked.connect(program._single_click)
-        program._servers_table.itemDoubleClicked.connect(program._double_click)
+        program._servers_table.itemClicked.connect(program._server_clicked)
+        program._servers_table.itemDoubleClicked.connect(
+            program._server_double_clicked
+        )
         program._servers_table.setMaximumHeight(100)
 
         buttons_widget = QWidget(tab)

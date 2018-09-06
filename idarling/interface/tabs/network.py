@@ -44,7 +44,9 @@ class _TabCfgNetwork:
         keep_intvl_label = QLabel("Keep-Alive Interval: ")
         program._keep_intvl_spin_box = QSpinBox(keep_intvl_label)
         program._keep_intvl_spin_box.setRange(0, 86400)
-        program._keep_intvl_spin_box.setValue(program._plugin.config["keep"]["intvl"])
+        program._keep_intvl_spin_box.setValue(
+            program._plugin.config["keep"]["intvl"]
+        )
         program._keep_intvl_spin_box.setSuffix(" seconds")
         layout.addRow(keep_intvl_label, program._keep_intvl_spin_box)
 

@@ -64,9 +64,9 @@ class _TabCfgGeneral:
 
         # Add a handler on clicking color button
         def colorButtonActivated(_):
-            program._set_color(qt_color = QColorDialog.getColor().rgb())
+            program._set_color(qt_color=QColorDialog.getColor().rgb())
         program._color = program._plugin.config["user"]["color"]
-        program._set_color(ida_color = program._color)
+        program._set_color(ida_color=program._color)
         program._color_button.clicked.connect(colorButtonActivated)
         user_layout.addWidget(program._color_button)
 
@@ -90,7 +90,7 @@ class _TabCfgGeneral:
         program._notifications_checkbox.setChecked(checked)
 
         # User info settings: Debug Level
-        debug_level_label = QLabel("Log Level: ")
+        debug_level_label = QLabel("Logging Level: ")
         program._debug_level_combo_box = QComboBox()
         program._debug_level_combo_box.addItem("CRITICAL", logging.CRITICAL)
         program._debug_level_combo_box.addItem("ERROR", logging.ERROR)

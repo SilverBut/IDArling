@@ -52,29 +52,20 @@ from ..shared.commands import (
 )
 from ..shared.models import Branch, Repository
 
-logger = logging.getLogger("IDArling.Interface")
-
 
 class OpenDialog(QDialog):
-    """
-    The open dialog allowing an user to select a remote database to download.
-    """
+    """This dialog is shown to user to select which remote database to load."""
 
     def __init__(self, plugin):
-        """
-        Initialize the open dialog.
-
-        :param plugin: the plugin instance
-        """
         super(OpenDialog, self).__init__()
         self._plugin = plugin
         self._repos = None
         self._branches = None
 
         # General setup of the dialog
-        logger.debug("Showing the database selection dialog")
+        self._plugin.logger.debug("Showing the database selection dialog")
         self.setWindowTitle("Open from Remote Server")
-        icon_path = self._plugin.resource("download.png")
+        icon_path = self._plugin.plugin_resource("download.png")
         self.setWindowIcon(QIcon(icon_path))
         self.resize(900, 450)
 
@@ -145,22 +136,16 @@ class OpenDialog(QDialog):
 
         # Ask the server for the list of repositories
         d = self._plugin.network.send_packet(GetRepositories.Query())
-        d.add_callback(self._on_get_repos)
-        d.add_errback(logger.exception)
+        d.add_callback(self._repos_received)
+        d.add_errback(self._plugin.logger.exception)
 
-    def _on_get_repos(self, reply):
-        """
-        Called when the list of repositories is received.
-
-        :param reply: the reply from the server
-        """
+    def _repos_received(self, reply):
+        """Called when the list of repositories is received."""
         self._repos = reply.repos
         self._refresh_repos()
 
     def _refresh_repos(self):
-        """
-        Refreshes the table of repositories.
-        """
+        """Refreshes the repositories table."""
         self._repos_table.setRowCount(len(self._repos))
         for i, repo in enumerate(self._repos):
             item = QTableWidgetItem(repo.name)
@@ -169,9 +154,7 @@ class OpenDialog(QDialog):
             self._repos_table.setItem(i, 0, item)
 
     def _repo_clicked(self):
-        """
-        Called when a repository item is clicked, will update the display.
-        """
+        """Called when a repository item is clicked."""
         repo = self._repos_table.selectedItems()[0].data(Qt.UserRole)
         self._file_label.setText("<b>File:</b> %s" % str(repo.file))
         self._hash_label.setText("<b>Hash:</b> %s" % str(repo.hash))
@@ -180,22 +163,16 @@ class OpenDialog(QDialog):
 
         # Ask the server for the list of branches
         d = self._plugin.network.send_packet(GetBranches.Query(repo.name))
-        d.add_callback(partial(self._on_get_branches))
-        d.add_errback(logger.exception)
+        d.add_callback(partial(self._branches_received))
+        d.add_errback(self._plugin.logger.exception)
 
-    def _on_get_branches(self, reply):
-        """
-        Called when the list of branches is received.
-
-        :param reply: the reply from the server
-        """
+    def _branches_received(self, reply):
+        """Called when the list of branches is received."""
         self._branches = reply.branches
         self._refresh_branches()
 
     def _refresh_branches(self):
-        """
-        Refreshes the table of branches.
-        """
+        """Refreshes the table of branches."""
 
         def create_item(text, branch):
             item = QTableWidgetItem(text)
@@ -217,53 +194,41 @@ class OpenDialog(QDialog):
             self._branches_table.setItem(i, 2, create_item(tick, branch))
 
     def _branch_clicked(self):
-        """
-        Called when a branch item is clicked.
-        """
         self._accept_button.setEnabled(True)
 
     def _branch_double_clicked(self):
-        """
-        Called when a branch item is double-clicked.
-        """
         self.accept()
 
     def get_result(self):
-        """
-        Get the result (repo, branch) from this dialog.
-
-        :return: the result
-        """
+        """Get the repository and branch selected by the user."""
         repo = self._repos_table.selectedItems()[0].data(Qt.UserRole)
         return repo, self._branches_table.selectedItems()[0].data(Qt.UserRole)
 
 
 class SaveDialog(OpenDialog):
     """
-    The save dialog allowing an user to select a remote database to upload to.
+    This dialog is shown to user to select which remote database to save. We
+    extend the save dialog to reuse most of the UI setup code.
     """
 
     def __init__(self, plugin):
-        """
-        Initialize the save dialog.
-
-        :param plugin: the plugin instance
-        """
         super(SaveDialog, self).__init__(plugin)
         self._repo = None
 
         # General setup of the dialog
         self.setWindowTitle("Save to Remote Server")
-        icon_path = self._plugin.resource("upload.png")
+        icon_path = self._plugin.plugin_resource("upload.png")
         self.setWindowIcon(QIcon(icon_path))
 
         # Setup the layout and widgets
         self._accept_button.setText("Save")
 
+        # Add a button to create a new repository
         new_repo_button = QPushButton("New Repository", self._left_side)
         new_repo_button.clicked.connect(self._new_repo_clicked)
         self._left_layout.addWidget(new_repo_button)
 
+        # Add a button to create a new branch
         self._new_branch_button = QPushButton(
             "New Branch", self._branches_group
         )
@@ -277,31 +242,27 @@ class SaveDialog(OpenDialog):
         self._new_branch_button.setEnabled(True)
 
     def _new_repo_clicked(self):
-        """
-        Called when the new repository button is clicked.
-        """
         dialog = NewRepoDialog(self._plugin)
         dialog.accepted.connect(partial(self._new_repo_accepted, dialog))
         dialog.exec_()
 
     def _new_repo_accepted(self, dialog):
-        """
-        Called when the new repository dialog is accepted by the user.
-
-        :param dialog: the dialog
-        """
+        """Called when the repository creation dialog is accepted."""
         name = dialog.get_result()
+
+        # Ensure we don't already have a repo with that name
         if any(repo.name == name for repo in self._repos):
             failure = QMessageBox()
             failure.setIcon(QMessageBox.Warning)
             failure.setStandardButtons(QMessageBox.Ok)
             failure.setText("A repository with that name already exists!")
             failure.setWindowTitle("New Repository")
-            icon_path = self._plugin.resource("upload.png")
+            icon_path = self._plugin.plugin_resource("upload.png")
             failure.setWindowIcon(QIcon(icon_path))
             failure.exec_()
             return
 
+        # Get all the information we need and sent it to the server
         hash = ida_nalt.retrieve_input_file_md5().lower()
         file = ida_nalt.get_root_filename()
         type = ida_loader.get_file_type_name()
@@ -309,15 +270,11 @@ class SaveDialog(OpenDialog):
         date = datetime.datetime.now().strftime(date_format)
         repo = Repository(name, hash, file, type, date)
         d = self._plugin.network.send_packet(NewRepository.Query(repo))
-        d.add_callback(partial(self._on_new_repo, repo))
-        d.add_errback(logger.exception)
+        d.add_callback(partial(self._new_repo_received, repo))
+        d.add_errback(self._plugin.logger.exception)
 
-    def _on_new_repo(self, repo, _):
-        """
-        Called when the new repository reply is received.
-
-        :param repo: the new repo
-        """
+    def _new_repo_received(self, repo, _):
+        """Called when the new repository reply is received."""
         self._repos.append(repo)
         self._refresh_repos()
         row = len(self._repos) - 1
@@ -334,44 +291,37 @@ class SaveDialog(OpenDialog):
                 item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
 
     def _new_branch_clicked(self):
-        """
-        Called when the new branch button is clicked.
-        """
+        """Called when the new branch button is clicked."""
         dialog = NewBranchDialog(self._plugin)
         dialog.accepted.connect(partial(self._new_branch_accepted, dialog))
         dialog.exec_()
 
     def _new_branch_accepted(self, dialog):
-        """
-        Called when the new branch dialog is accepted by the user.
-
-        :param dialog: the dialog
-        """
+        """Called when the new branch dialog is accepted."""
         name = dialog.get_result()
+
+        # Ensure we don't already have a branch with that name
         if any(br.name == name for br in self._branches):
             failure = QMessageBox()
             failure.setIcon(QMessageBox.Warning)
             failure.setStandardButtons(QMessageBox.Ok)
             failure.setText("A branch with that name already exists!")
             failure.setWindowTitle("New Branch")
-            icon_path = self._plugin.resource("upload.png")
+            icon_path = self._plugin.plugin_resource("upload.png")
             failure.setWindowIcon(QIcon(icon_path))
             failure.exec_()
             return
 
+        # Get all the information we need and sent it to the server
         date_format = "%Y/%m/%d %H:%M"
         date = datetime.datetime.now().strftime(date_format)
         branch = Branch(self._repo.name, name, date, -1)
         d = self._plugin.network.send_packet(NewBranch.Query(branch))
-        d.add_callback(partial(self._on_new_branch, branch))
-        d.add_errback(logger.exception)
+        d.add_callback(partial(self._new_branch_received, branch))
+        d.add_errback(self._plugin.logger.exception)
 
-    def _on_new_branch(self, branch, _):
-        """
-        Called when the new branch reply is received.
-
-        :param branch: the new branch
-        """
+    def _new_branch_received(self, branch, _):
+        """Called when the new branch reply is received."""
         self._branches.append(branch)
         self._refresh_branches()
         row = len(self._branches) - 1
@@ -386,25 +336,20 @@ class SaveDialog(OpenDialog):
 
 
 class NewRepoDialog(QDialog):
-    """
-    The dialog allowing an user to create a new repository.
-    """
+    """The dialog shown when an user wants to create a new repository."""
 
     def __init__(self, plugin):
-        """
-        Initialize the new repo dialog.
-
-        :param plugin: the plugin instance
-        """
         super(NewRepoDialog, self).__init__()
+        self._plugin = plugin
 
         # General setup of the dialog
-        logger.debug("New repo dialog")
+        self._plugin.logger.debug("New repo dialog")
         self.setWindowTitle("New Repository")
-        icon_path = plugin.resource("upload.png")
+        icon_path = plugin.plugin_resource("upload.png")
         self.setWindowIcon(QIcon(icon_path))
         self.resize(100, 100)
 
+        # Set up the layout and widgets
         layout = QVBoxLayout(self)
 
         self._nameLabel = QLabel("<b>Repository Name</b>")
@@ -424,25 +369,17 @@ class NewRepoDialog(QDialog):
         layout.addWidget(buttons)
 
     def get_result(self):
-        """
-        Get the user-specified name from this dialog.
-
-        :return: the name
-        """
+        """Get the name entered by the user."""
         return self._nameEdit.text()
 
 
 class NewBranchDialog(NewRepoDialog):
     """
-    The dialog allowing an user to create a new branch.
+    The dialog shown when an user wants to create a new branch. We extend the
+    new repository dialog to avoid duplicating the UI setup code.
     """
 
     def __init__(self, plugin):
-        """
-        Initialize the new branch dialog.
-
-        :param plugin: the plugin instance
-        """
         super(NewBranchDialog, self).__init__(plugin)
         self.setWindowTitle("New Branch")
         self._nameLabel.setText("<b>Branch Name</b>")
@@ -450,23 +387,19 @@ class NewBranchDialog(NewRepoDialog):
 
 class SettingsDialog(QDialog):
     """
-    The dialog allowing an user to select a remote server to connect to.
+    The dialog allowing an user to configure the plugin. It has multiple tabs
+    used to group the settings by category (general, network, etc.).
     """
 
     def __init__(self, plugin):
-        """
-        Initialize the settings dialog.
-
-        :param plugin: the plugin instance
-        """
         super(SettingsDialog, self).__init__()
         self._plugin = plugin
 
         # General setup of the dialog
-        logger.debug("Showing settings dialog")
+        self._plugin.logger.debug("Showing settings dialog")
         self.setWindowTitle("Settings")
-        iconPath = self._plugin.resource('settings.png')
-        self.setWindowIcon(QIcon(iconPath))
+        icon_path = self._plugin.plugin_resource("settings.png")
+        self.setWindowIcon(QIcon(icon_path))
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)
 
         windowWidget = QWidget(self)
@@ -518,13 +451,11 @@ class SettingsDialog(QDialog):
             windowWidget.sizeHint().height()
         )
 
-    def _set_color(self, ida_color=None, qt_color=None):
-        """
-        Sets the Qt color of the button.
+    # Here we would like to provide some public methods
+    # So methods of widgets do not need to be exported for each tab
 
-        :param ida_color: the IDA color
-        :param qt_color: the Qt color
-        """
+    def _set_color(self, ida_color=None, qt_color=None):
+        """Sets the color of the user color button."""
         # IDA represents colors as 0xBBGGRR
         if ida_color is not None:
             r = ida_color & 255
@@ -540,22 +471,19 @@ class SettingsDialog(QDialog):
         ida_color = r | g << 8 | b << 16
         qt_color = r << 16 | g << 8 | b
 
+        # Set the stylesheet of the button
         css = "QPushButton {background-color: #%06x; color: #%06x;}"
         self._color_button.setStyleSheet(css % (qt_color, qt_color))
         self._color = ida_color
 
-    # Here we would like to provide some public methods
-    # So methods of widgets do not need to be exported there
-    def _single_click(self, _):
-        """
-        Called when a server item is clicked.
-        """
+    def _server_clicked(self, _):
         self._edit_button.setEnabled(True)
         self._delete_button.setEnabled(True)
 
-    def _double_click(self, _):
+    def _server_double_clicked(self, _):
         item = self._servers_table.selectedItems()[0]
         server = item.data(Qt.UserRole)
+        # If not the current server, connect to it
         if (
             not self._plugin.network.connected
             or self._plugin.network.server != server
@@ -565,29 +493,27 @@ class SettingsDialog(QDialog):
         self.accept()
 
     def _add_button_clicked(self, _):
-        """
-        Called when the add button is clicked.
-        """
         dialog = ServerInfoDialog(self._plugin, "Add server")
         dialog.accepted.connect(partial(self._add_dialog_accepted, dialog))
         dialog.exec_()
 
     def _edit_button_clicked(self, _):
-        """
-        Called when the add button is clicked.
-        """
         item = self._servers_table.selectedItems()[0]
         server = item.data(Qt.UserRole)
         dialog = ServerInfoDialog(self._plugin, "Edit server", server)
         dialog.accepted.connect(partial(self._edit_dialog_accepted, dialog))
         dialog.exec_()
 
-    def _add_dialog_accepted(self, dialog):
-        """
-        Called when the add server dialog is accepted by the user.
+    def _delete_button_clicked(self, _):
+        item = self._servers_table.selectedItems()[0]
+        server = item.data(Qt.UserRole)
+        self._servers.remove(server)
+        self._plugin.save_config()
+        self._servers_table.removeRow(item.row())
+        self.update()
 
-        :param dialog: the add server dialog
-        """
+    def _add_dialog_accepted(self, dialog):
+        """Called when the dialog to add a server is accepted."""
         server = dialog.get_result()
         self._servers.append(server)
         row_count = self._servers_table.rowCount()
@@ -609,11 +535,7 @@ class SettingsDialog(QDialog):
         self.update()
 
     def _edit_dialog_accepted(self, dialog):
-        """
-        Called when the add server dialog is accepted by the user.
-
-        :param dialog: the edit server dialog
-        """
+        """Called when the dialog to edit a server is accepted."""
         server = dialog.get_result()
         item = self._servers_table.selectedItems()[0]
         self._servers[item.row()] = server
@@ -627,18 +549,8 @@ class SettingsDialog(QDialog):
         checkbox.setCheckState(state)
         self.update()
 
-    def _delete_button_clicked(self, _):
-        """
-        Called when the delete button is clicked.
-        """
-        item = self._servers_table.selectedItems()[0]
-        server = item.data(Qt.UserRole)
-        self._servers.remove(server)
-        self._plugin.save_config()
-        self._servers_table.removeRow(item.row())
-        self.update()
-
     def _reset(self, _):
+        """Resets all the form elements to their default value."""
         config = self._plugin.default_config()
 
         self._name_line_edit.setText(config["user"]["name"])
@@ -659,6 +571,7 @@ class SettingsDialog(QDialog):
         self._keep_idle_spin_box.setValue(config["keep"]["idle"])
 
     def _commit(self):
+        """Commits all the changes made to the form elements."""
         name = self._name_line_edit.text()
         if self._plugin.config["user"]["name"] != name:
             old_name = self._plugin.config["user"]["name"]
@@ -675,14 +588,11 @@ class SettingsDialog(QDialog):
         checked = self._navbar_colorizer_checkbox.isChecked()
         self._plugin.config["user"]["navbar_colorizer"] = checked
         checked = self._notifications_checkbox.isChecked()
-
         self._plugin.config["user"]["notifications"] = checked
-
-        from idarling.plugin import logger
 
         index = self._debug_level_combo_box.currentIndex()
         level = self._debug_level_combo_box.itemData(index)
-        logger.setLevel(level)
+        self._plugin.logger.setLevel(level)
         self._plugin.config["level"] = level
 
         self._plugin.config["servers"] = self._servers
@@ -699,27 +609,20 @@ class SettingsDialog(QDialog):
 
 
 class ServerInfoDialog(QDialog):
-    """
-    The dialog allowing an user to add a remote server to connect to.
-    """
+    """The dialog shown when an user creates or edits a server."""
 
     def __init__(self, plugin, title, server=None):
-        """
-        Initialize the network setting dialog.
-
-        :param plugin: the plugin instance
-        :param title: the dialog title
-        :param server: the current server information
-        """
         super(ServerInfoDialog, self).__init__()
+        self._plugin = plugin
 
         # General setup of the dialog
-        logger.debug("Showing server info dialog")
+        self._plugin.logger.debug("Showing server info dialog")
         self.setWindowTitle(title)
-        icon_path = plugin.resource("settings.png")
+        icon_path = plugin.plugin_resource("settings.png")
         self.setWindowIcon(QIcon(icon_path))
         self.resize(100, 100)
 
+        # Setup the layout and widgets
         layout = QVBoxLayout(self)
 
         self._server_name_label = QLabel("<b>Server Host</b>")
@@ -737,6 +640,7 @@ class ServerInfoDialog(QDialog):
         self._no_ssl_checkbox = QCheckBox("Disable SSL")
         layout.addWidget(self._no_ssl_checkbox)
 
+        # Set the form elements values if we have a base
         if server is not None:
             self._server_name.setText(server["host"])
             self._server_port.setText(str(server["port"]))
@@ -753,14 +657,9 @@ class ServerInfoDialog(QDialog):
         layout.addWidget(down_side)
 
     def get_result(self):
-        """
-        Get the result (server, port) from this dialog.
-
-        :return: the result
-        """
-        new_server = {
+        """Get the server resulting from the form elements values."""
+        return {
             "host": self._server_name.text() or "127.0.0.1",
             "port": int(self._server_port.text() or "31013"),
             "no_ssl": self._no_ssl_checkbox.isChecked(),
         }
-        return new_server
