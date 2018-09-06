@@ -95,6 +95,9 @@ class StatusWidget(QWidget):
         self._timer.setInterval(1000)
         self._timer.timeout.connect(self.refresh)
 
+        # Create position for settings dialog
+        self._settings_dialog = None
+
     def install(self, window):
         self._timer.start()
         window.statusBar().addPermanentWidget(self)
@@ -226,7 +229,9 @@ class StatusWidget(QWidget):
 
         # Add a handler on the action
         def settings_action_triggered():
-            SettingsDialog(self._plugin).exec_()
+            if self._settings_dialog is None:
+                self._settings_dialog = SettingsDialog(self._plugin)
+            self._settings_dialog.exec_()
 
         settings.triggered.connect(settings_action_triggered)
         menu.addAction(settings)
