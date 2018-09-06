@@ -12,6 +12,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 import ida_kernwin
 
+from PyQt5.QtGui import QImage, QPixmap  # noqa: I202
+
+from ..interface.widget import StatusWidget
 from ..shared.commands import (
     InviteTo,
     Subscribe,
@@ -33,7 +36,6 @@ class Client(ClientSocket):
     def __init__(self, plugin, parent=None):
         ClientSocket.__init__(self, plugin.logger, parent)
         self._plugin = plugin
-        self._users = {}
 
         # Setup command handlers
         self._handlers = {
@@ -45,16 +47,12 @@ class Client(ClientSocket):
             UserColorChanged: self._handle_user_color_changed,
         }
 
-    @property
-    def users(self):
-        """Get the information of all users connected to the same database."""
-        return self._users
-
     def disconnect(self, err=None):
         ClientSocket.disconnect(self, err)
+        self._plugin.network.disconnect()
+        # Update the user interface
+        self._plugin.interface.update()
         self._plugin.logger.info("Connection lost")
-        # Notify the plugin
-        self._plugin.notify_disconnected()
 
     def recv_packet(self, packet):
         if isinstance(packet, Command):
@@ -91,9 +89,29 @@ class Client(ClientSocket):
         self._plugin.interface.painter.paint(
             packet.name, packet.color, packet.ea
         )
+        self._plugin.interface.widget.refresh()
+
+        # Show a toast notification
+        if packet.silent:
+            return
+        text = "%s joined the session" % packet.name
+        template = QImage(self._plugin.plugin_resource("user.png"))
+        icon = StatusWidget.make_icon(template, packet.color)
+        self._plugin.interface.show_invite(text, icon)
 
     def _handle_unsubscribe(self, packet):
-        self._plugin.interface.painter.unpaint(packet.name)
+        # Show a toast notification
+        if packet.silent:
+            return
+        text = "%s left the session" % packet.name
+        template = QImage(self._plugin.plugin_resource("user.png"))
+        info = self._plugin.interface.painter.users_positions[packet.name]
+        icon = StatusWidget.make_icon(template, info["color"])
+        self._plugin.interface.show_invite(text, icon)
+
+        if self._plugin.interface.painter.installed:
+            self._plugin.interface.painter.unpaint(packet.name)
+        self._plugin.interface.widget.refresh()
 
     def _handle_invite_to(self, packet):
         text = "%s - Jump to %#x" % (packet.name, packet.loc)
@@ -102,7 +120,7 @@ class Client(ClientSocket):
         def callback():
             ida_kernwin.jumpto(packet.loc)
 
-        self._plugin.interface.show_notification(text, icon, callback)
+        self._plugin.interface.show_invite(text, QPixmap(icon), callback)
 
     def _handle_update_cursors(self, packet):
         self._plugin.interface.painter.paint(

@@ -114,6 +114,11 @@ class Core(Module):
                     )
                     core.hook_all()
 
+                self._plugin.interface.painter.set_custom_nav_colorizer()
+
+            def database_inited(self, *_):
+                self._plugin.interface.painter.install()
+
         self._ui_hooks_core = UIHooksCore(self._plugin)
         self._ui_hooks_core.hook()
 
@@ -129,9 +134,9 @@ class Core(Module):
 
             def closebase(self):
                 core.unhook_all()
+                core.unsubscribe()
 
-                name = self._plugin.config["user"]["name"]
-                self._plugin.network.send_packet(Unsubscribe(name))
+                self._plugin.interface.painter.uninstall()
 
                 core.repo = None
                 core.branch = None
@@ -206,8 +211,8 @@ class Core(Module):
             % (self._repo, self._branch, self._tick)
         )
 
-    def notify_connected(self):
-        # Send a subscribe packet if this database is on the server
+    def subscribe(self):
+        """Send the subscribe packet."""
         if self._repo and self._branch:
             name = self._plugin.config["user"]["name"]
             color = self._plugin.config["user"]["color"]
@@ -218,3 +223,9 @@ class Core(Module):
                 )
             )
             self.hook_all()
+
+    def unsubscribe(self):
+        """Send the unsubscribe packet."""
+        if self._repo and self._branch:
+            name = self._plugin.config["user"]["name"]
+            self._plugin.network.send_packet(Unsubscribe(name))

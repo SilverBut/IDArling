@@ -94,6 +94,7 @@ class ClientSocket(QObject):
         self._read_notifier.setEnabled(False)
         self._write_notifier.setEnabled(False)
         try:
+            self._socket.shutdown(socket.SHUT_RDWR)
             self._socket.close()
         except socket.error:
             pass
@@ -287,7 +288,7 @@ class ClientSocket(QObject):
         self._logger.debug("Sending packet: %s" % packet)
 
         # Enqueue the packet
-        self._outgoing.append(packet)
+        self._outgoing.append(packet.clone())
         if not self._write_notifier.isEnabled():
             self._write_notifier.setEnabled(True)
 
