@@ -430,12 +430,12 @@ class SettingsDialog(QDialog):
         def save(_):
             self._commit()
             self.accept()
-        saveButton = QPushButton("Save")
+        saveButton = QPushButton("Save & Close")
         saveButton.clicked.connect(save)
         actionsLayout.addWidget(saveButton)
 
         # Reset button
-        resetButton = QPushButton("Reset to Default")
+        resetButton = QPushButton("Reset ALL to Default")
         resetButton.clicked.connect(self._reset)
         actionsLayout.addWidget(resetButton)
 
