@@ -36,6 +36,8 @@ class Painter(object):
     @staticmethod
     def get_ida_bg_color():
         palette = ida_registry.reg_read_binary("Palette")
+        if palette is None:
+            return 0xffffff
         selected = struct.unpack("<I", palette[8:12])[0]
         index = 176 + selected * 208
         return struct.unpack("<I", palette[index:index + 4])[0]
@@ -210,7 +212,7 @@ class Painter(object):
         """
         Clear paint from the given instruction
 
-        :param color: the color
+        :param name: the name
         """
         # get user position
         users_positions = self.users_positions.get(name)
@@ -220,7 +222,7 @@ class Painter(object):
             try:
                 color = self._painted_instructions[address].pop()
             # else apply the default background
-            except Exception as e:
+            except IndexError:
                 color = self.bg_color
             self.set_paint_instruction(address, color)
 
@@ -249,6 +251,7 @@ class Painter(object):
         """
         Paint function with the given color
 
+        :param name: the name
         :param color: the color
         :param new_address: address within the function where apply the color
         """
@@ -277,7 +280,7 @@ class Painter(object):
         """
         Clear paint from the given functions
 
-        :param color: the color
+        :param name: the name
         :param new_address: an address within the function where the color
                             needs to be cleared
         """
@@ -351,6 +354,7 @@ class Painter(object):
         """
         Update database's paint state with the given color and address
 
+        :param name: the name
         :param color: the color
         :param address: the address
         """

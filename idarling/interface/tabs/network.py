@@ -34,50 +34,70 @@ class _TabCfgNetwork:
         tab = QWidget(parent)
         layout = QFormLayout(tab)
 
-        def update_keep_alive():
-            program._plugin.save_config()
-            cnt = program._plugin.config["keep"]["cnt"]
-            intvl = program._plugin.config["keep"]["intvl"]
-            idle = program._plugin.config["keep"]["idle"]
-            if program._plugin.network.client:
-                program._plugin.network.client.set_keep_alive(cnt, intvl, idle)
-
         keepCntLabel = QLabel("Keep-Alive Count: ")
-        keepCntSpinBox = QSpinBox(keepCntLabel)
-        keepCntSpinBox.setRange(0, 86400)
-        keepCntSpinBox.setValue(program._plugin.config["keep"]["cnt"])
-        keepCntSpinBox.setSuffix(" packets")
-
-        def keepCntSpinBoxChanged(cnt):
-            program._plugin.config["keep"]["cnt"] = cnt
-            update_keep_alive()
-
-        keepCntSpinBox.valueChanged.connect(keepCntSpinBoxChanged)
-        layout.addRow(keepCntLabel, keepCntSpinBox)
+        program._keepCntSpinBox = QSpinBox(tab)
+        program._keepCntSpinBox.setRange(0, 86400)
+        program._keepCntSpinBox.setValue(program._plugin.config["keep"]["cnt"])
+        program._keepCntSpinBox.setSuffix(" packets")
+        layout.addRow(keepCntLabel, program._keepCntSpinBox)
 
         keepIntvlLabel = QLabel("Keep-Alive Interval: ")
-        keepIntvlSpinBox = QSpinBox(keepIntvlLabel)
-        keepIntvlSpinBox.setRange(0, 86400)
-        keepIntvlSpinBox.setValue(program._plugin.config["keep"]["intvl"])
-        keepIntvlSpinBox.setSuffix(" seconds")
-
-        def keepIntvlSpinBoxChanged(intvl):
-            program._plugin.config["keep"]["intvl"] = intvl
-            update_keep_alive()
-
-        keepIntvlSpinBox.valueChanged.connect(keepIntvlSpinBoxChanged)
-        layout.addRow(keepIntvlLabel, keepIntvlSpinBox)
+        program._keepIntvlSpinBox = QSpinBox(keepIntvlLabel)
+        program._keepIntvlSpinBox.setRange(0, 86400)
+        program._keepIntvlSpinBox.setValue(program._plugin.config["keep"]["intvl"])
+        program._keepIntvlSpinBox.setSuffix(" seconds")
+        layout.addRow(keepIntvlLabel, program._keepIntvlSpinBox)
 
         keepIdleLabel = QLabel("Keep-Alive Idle: ")
-        keepIdleSpinBox = QSpinBox(keepIdleLabel)
-        keepIdleSpinBox.setRange(0, 86400)
-        keepIdleSpinBox.setValue(program._plugin.config["keep"]["idle"])
-        keepIdleSpinBox.setSuffix(" seconds")
+        program._keepIdleSpinBox = QSpinBox(keepIdleLabel)
+        program._keepIdleSpinBox.setRange(0, 86400)
+        program._keepIdleSpinBox.setValue(program._plugin.config["keep"]["idle"])
+        program._keepIdleSpinBox.setSuffix(" seconds")
+        layout.addRow(keepIdleLabel, program._keepIdleSpinBox)
 
-        def keepIdleSpinBoxChanged(idle):
-            program._plugin.config["keep"]["idle"] = idle
-            update_keep_alive()
-
-        keepIdleSpinBox.valueChanged.connect(keepIdleSpinBoxChanged)
-        layout.addRow(keepIdleLabel, keepIdleSpinBox)
+#        def update_keep_alive():
+#            program._plugin.save_config()
+#            cnt = program._plugin.config["keep"]["cnt"]
+#            intvl = program._plugin.config["keep"]["intvl"]
+#            idle = program._plugin.config["keep"]["idle"]
+#            if program._plugin.network.client:
+#                program._plugin.network.client.set_keep_alive(cnt, intvl, idle)
+#
+#        keepCntLabel = QLabel("Keep-Alive Count: ")
+#        keepCntSpinBox = QSpinBox(keepCntLabel)
+#        keepCntSpinBox.setRange(0, 86400)
+#        keepCntSpinBox.setValue(program._plugin.config["keep"]["cnt"])
+#        keepCntSpinBox.setSuffix(" packets")
+#
+#        def keepCntSpinBoxChanged(cnt):
+#            program._plugin.config["keep"]["cnt"] = cnt
+#            update_keep_alive()
+#
+#        keepCntSpinBox.valueChanged.connect(keepCntSpinBoxChanged)
+#
+#        keepIntvlLabel = QLabel("Keep-Alive Interval: ")
+#        keepIntvlSpinBox = QSpinBox(keepIntvlLabel)
+#        keepIntvlSpinBox.setRange(0, 86400)
+#        keepIntvlSpinBox.setValue(program._plugin.config["keep"]["intvl"])
+#        keepIntvlSpinBox.setSuffix(" seconds")
+#
+#        def keepIntvlSpinBoxChanged(intvl):
+#            program._plugin.config["keep"]["intvl"] = intvl
+#            update_keep_alive()
+#
+#        keepIntvlSpinBox.valueChanged.connect(keepIntvlSpinBoxChanged)
+#        layout.addRow(keepIntvlLabel, keepIntvlSpinBox)
+#
+#        keepIdleLabel = QLabel("Keep-Alive Idle: ")
+#        keepIdleSpinBox = QSpinBox(keepIdleLabel)
+#        keepIdleSpinBox.setRange(0, 86400)
+#        keepIdleSpinBox.setValue(program._plugin.config["keep"]["idle"])
+#        keepIdleSpinBox.setSuffix(" seconds")
+#
+#        def keepIdleSpinBoxChanged(idle):
+#            program._plugin.config["keep"]["idle"] = idle
+#            update_keep_alive()
+#
+#        keepIdleSpinBox.valueChanged.connect(keepIdleSpinBoxChanged)
+#        layout.addRow(keepIdleLabel, keepIdleSpinBox)
         return tab

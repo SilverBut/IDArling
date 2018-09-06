@@ -49,10 +49,11 @@ class _TabCfgServer:
         tab = QWidget(parent)
         layout = QVBoxLayout(tab)
 
-        servers = program._plugin.config["servers"]
-        program._serversTable = QTableWidget(len(servers), 2, program)
-        program._serversTable.setHorizontalHeaderLabels(("Servers", ""))
-        for i, server in enumerate(servers):
+        program._servers = program._plugin.config["servers"]
+        program._serversTable = QTableWidget(len(program._servers), 2, program)
+        layout.addWidget(program._serversTable)
+
+        for i, server in enumerate(program._servers):
             item = QTableWidgetItem('%s:%d' % (server["host"], server["port"]))
             item.setData(Qt.UserRole, server)
             item.setFlags(item.flags() & ~Qt.ItemIsEditable)
@@ -69,6 +70,7 @@ class _TabCfgServer:
                 checkbox.setFlags((checkbox.flags() & ~Qt.ItemIsSelectable))
             program._serversTable.setItem(i, 1, checkbox)
 
+        program._serversTable.setHorizontalHeaderLabels(("Servers", ""))
         horizontalHeader = program._serversTable.horizontalHeader()
         horizontalHeader.setSectionsClickable(False)
         horizontalHeader.setSectionResizeMode(0, QHeaderView.Stretch)
@@ -76,15 +78,18 @@ class _TabCfgServer:
         program._serversTable.verticalHeader().setVisible(False)
         program._serversTable.setSelectionBehavior(QTableWidget.SelectRows)
         program._serversTable.setSelectionMode(QTableWidget.SingleSelection)
-        program._serversTable.itemClicked.connect(program._server_clicked)
-        program._serversTable.itemDoubleClicked.connect(
-            program._server_double_clicked)
-        minSZ = program._serversTable.minimumSize()
-        program._serversTable.setMinimumSize(300, minSZ.height())
-        layout.addWidget(program._serversTable)
+        #program._serversTable.itemClicked.connect(program._server_clicked)
+        #program._serversTable.itemDoubleClicked.connect(
+        #    program._server_double_clicked)
+        #minSZ = program._serversTable.minimumSize()
+        #program._serversTable.setMinimumSize(300, minSZ.height())
+        program._serversTable.itemClicked.connect(program._single_click)
+        program._serversTable.itemDoubleClicked.connect(program._double_click)
+        program._serversTable.setMaximumHeight(100)
 
-        buttonsWidget = QWidget(program)
+        buttonsWidget = QWidget(tab)
         buttonsLayout = QHBoxLayout(buttonsWidget)
+        layout.addWidget(buttonsWidget)
 
         # Add server button
         program._addButton = QPushButton("Add Server")

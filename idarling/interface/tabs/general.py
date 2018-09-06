@@ -55,81 +55,41 @@ class _TabCfgGeneral:
 
         # Add widgets and restore settings
 
-        # NavbarColorizer Checkbox
-        display = "Enable users display in the navigation bar"
-        navbarColorizerCheckbox = QCheckBox(display)
-        layout.addRow(navbarColorizerCheckbox)
+ #       # NavbarColorizer Checkbox
+ #       display = "Enable users display in the navigation bar"
+ #       navbarColorizerCheckbox = QCheckBox(display)
+ #       layout.addRow(navbarColorizerCheckbox)
 
-        def navbarColorizerActionTriggered():
-            program._plugin["user"]["navbar_colorizer"] = \
-                navbarColorizerCheckbox.isChecked()
-            program._plugin.save_config()
+ #       def navbarColorizerActionTriggered():
+ #           program._plugin["user"]["navbar_colorizer"] = \
+ #               navbarColorizerCheckbox.isChecked()
+ #           program._plugin.save_config()
 
-        checkbox = navbarColorizerCheckbox
-        checkbox.toggled.connect(navbarColorizerActionTriggered)
-        checked = program._plugin.config["user"]["navbarColorizer"]
-        navbarColorizerCheckbox.setChecked(checked)
+ #       checkbox = navbarColorizerCheckbox
+ #       checkbox.toggled.connect(navbarColorizerActionTriggered)
+ #       checked = program._plugin.config["user"]["navbarColorizer"]
+ #       navbarColorizerCheckbox.setChecked(checked)
 
-        # Notifications Checkbox
-        display = "Enable notifications"
-        notificationsCheckbox = QCheckBox(display)
-        layout.addRow(notificationsCheckbox)
+ #       # Notifications Checkbox
+ #       display = "Enable notifications"
+ #       notificationsCheckbox = QCheckBox(display)
+ #       layout.addRow(notificationsCheckbox)
 
-        def notificationsActionToggled():
-            program._plugin.config["user"]["notifications"] = \
-                notificationsCheckbox.isChecked()
-            program._plugin.save_config()
+ #       def notificationsActionToggled():
+ #           program._plugin.config["user"]["notifications"] = \
+ #               notificationsCheckbox.isChecked()
+ #           program._plugin.save_config()
 
-        notificationsCheckbox.toggled.connect(notificationsActionToggled)
-        checked = program._plugin.config["user"]["notifications"]
-        notificationsCheckbox.setChecked(checked)
+ #       notificationsCheckbox.toggled.connect(notificationsActionToggled)
+ #       checked = program._plugin.config["user"]["notifications"]
+ #       notificationsCheckbox.setChecked(checked)
+        userWidget = QWidget(tab)
+        userLayout = QHBoxLayout(userWidget)
+        layout.addRow(userWidget)
 
-        # Color settings
-        color_settings = self.__tab_general_color_settings(tab)
-        layout.addWidget(color_settings)
-
-        # Debug Level settings
-        debugLevelLabel = QLabel("Log Level: ")
-        debugLevelComboBox = QComboBox()
-        debugLevelComboBox.addItem("CRITICAL", logging.CRITICAL)
-        debugLevelComboBox.addItem("ERROR", logging.ERROR)
-        debugLevelComboBox.addItem("WARNING", logging.WARNING)
-        debugLevelComboBox.addItem("INFO", logging.INFO)
-        debugLevelComboBox.addItem("DEBUG", logging.DEBUG)
-        debugLevelComboBox.addItem("TRACE", logging.TRACE)
-
-        def debugLevelInitialized():
-            from idarling.plugin import logger
-
-            index = debugLevelComboBox.findData(logger.getEffectiveLevel())
-            debugLevelComboBox.setCurrentIndex(index)
-
-        debugLevelInitialized()
-
-        def debugLevelActivated(index):
-            from idarling.plugin import logger
-
-            level = debugLevelComboBox.itemData(index)
-            logger.setLevel(level)
-            program._plugin.config["level"] = level
-            program._plugin.save_config()
-
-        debugLevelComboBox.activated.connect(debugLevelActivated)
-        layout.addRow(debugLevelLabel, debugLevelComboBox)
-
-        return tab
-
-    def __tab_general_color_settings(self, parent):
-        """
-        Initialize color settings in the General Settings tab
-        :param parent: Parent QWidget
-        :return:
-        """
-        program = self.program
-        # Add User Color settings
-        colorWidget = QWidget(parent)
-        colorLayout = QHBoxLayout(colorWidget)
-
+        # User info settings: Color
+#        color_settings = self.__tab_general_color_settings(tab)
+#        layout.addWidget(color_settings)
         colorButton = QPushButton("")
         colorButton.setFixedSize(50, 30)
 
@@ -148,20 +108,119 @@ class _TabCfgGeneral:
                 css = 'QPushButton {background-color: #%06x; color: #%06x;}' \
                     % (rgb_color_qt, rgb_color_qt)
                 colorButton.setStyleSheet(css)
-                program.color = rgb_color_ida
+                program._color = rgb_color_ida
 
         # Add a handler on clicking color button
         def colorButtonActivated(_):
-            color = QColorDialog.getColor()
-            setColor(color)
+#            color = QColorDialog.getColor()
+            setColor(QColorDialog.getColor())
 
-        color = QColor(program._plugin.config["user"]["color"])
-        setColor(color)
+        program._color = program._plugin.config["user"]["color"]
+        setColor(QColor(program._color))
         colorButton.clicked.connect(colorButtonActivated)
-        colorLayout.addWidget(colorButton)
+        userLayout.addWidget(colorButton)
+#
+        # User info settings: Name
+#        program.usernameLine = QLineEdit()
+#        program.usernameLine.setText(program._plugin.config["user"]["name"])
+#        colorLayout.addWidget(program.usernameLine)
+#        return colorWidget
+        program._nameLineEdit = QLineEdit()
+        name = program._plugin.config["user"]["name"]
+        program._nameLineEdit.setText(name)
+        userLayout.addWidget(program._nameLineEdit)
 
-        # User name
-        program.usernameLine = QLineEdit()
-        program.usernameLine.setText(program._plugin.config["user"]["name"])
-        colorLayout.addWidget(program.usernameLine)
-        return colorWidget
+        # User info settings: Notifications and Cursors
+        text = "Show other users in the navigation bar"
+        program._navbarColorizerCheckbox = QCheckBox(text)
+        layout.addRow(program._navbarColorizerCheckbox)
+        checked = program._plugin.config["user"]["navbar_colorizer"]
+        program._navbarColorizerCheckbox.setChecked(checked)
+
+        text = "Allow other users to send notifications"
+        program._notificationsCheckbox = QCheckBox(text)
+        layout.addRow(program._notificationsCheckbox)
+        checked = program._plugin.config["user"]["notifications"]
+        program._notificationsCheckbox.setChecked(checked)
+
+        # User info settings: Debug Level
+        debugLevelLabel = QLabel("Log Level: ")
+        program._debugLevelComboBox = QComboBox()
+        program._debugLevelComboBox.addItem("CRITICAL", logging.CRITICAL)
+        program._debugLevelComboBox.addItem("ERROR", logging.ERROR)
+        program._debugLevelComboBox.addItem("WARNING", logging.WARNING)
+        program._debugLevelComboBox.addItem("INFO", logging.INFO)
+        program._debugLevelComboBox.addItem("DEBUG", logging.DEBUG)
+        program._debugLevelComboBox.addItem("TRACE", logging.TRACE)
+        level = logger.getEffectiveLevel()
+        index = program._debugLevelComboBox.findData(level)
+        program._debugLevelComboBox.setCurrentIndex(index)
+        layout.addRow(debugLevelLabel, program._debugLevelComboBox)
+
+        #def debugLevelInitialized():
+        #    from idarling.plugin import logger
+
+        #    index = debugLevelComboBox.findData(logger.getEffectiveLevel())
+        #    debugLevelComboBox.setCurrentIndex(index)
+
+        #debugLevelInitialized()
+
+        #def debugLevelActivated(index):
+        #    from idarling.plugin import logger
+
+        #    level = debugLevelComboBox.itemData(index)
+        #    logger.setLevel(level)
+        #    program._plugin.config["level"] = level
+        #    program._plugin.save_config()
+
+        #debugLevelComboBox.activated.connect(debugLevelActivated)
+        #layout.addRow(debugLevelLabel, debugLevelComboBox)
+
+        return tab
+
+#    def __tab_general_color_settings(self, parent):
+#        """
+#        Initialize color settings in the General Settings tab
+#        :param parent: Parent QWidget
+#        :return:
+#        """
+#        program = self.program
+#        # Add User Color settings
+#        colorWidget = QWidget(parent)
+#        colorLayout = QHBoxLayout(colorWidget)
+#
+#        colorButton = QPushButton("")
+#        colorButton.setFixedSize(50, 30)
+#
+#        def setColor(color):
+#            """
+#            Sets the color (if valid) as user's color
+#
+#            :param color: the color
+#            """
+#            if color.isValid():
+#                r, g, b, _ = color.getRgb()
+#                # IDA represents color as 0xBBGGRR
+#                rgb_color_ida = b << 16 | g << 8 | r
+#                # Qt represents color as 0xRRGGBB
+#                rgb_color_qt = r << 16 | g << 8 | b
+#                css = 'QPushButton {background-color: #%06x; color: #%06x;}' \
+#                    % (rgb_color_qt, rgb_color_qt)
+#                colorButton.setStyleSheet(css)
+#                program.color = rgb_color_ida
+#
+#        # Add a handler on clicking color button
+#        def colorButtonActivated(_):
+#            color = QColorDialog.getColor()
+#            setColor(color)
+#
+#        color = QColor(program._plugin.config["user"]["color"])
+#        setColor(color)
+#        colorButton.clicked.connect(colorButtonActivated)
+#        colorLayout.addWidget(colorButton)
+#
+#        # User name
+#        program.usernameLine = QLineEdit()
+#        program.usernameLine.setText(program._plugin.config["user"]["name"])
+#        colorLayout.addWidget(program.usernameLine)
+#        return colorWidget
