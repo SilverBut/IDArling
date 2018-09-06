@@ -437,12 +437,14 @@ class SettingsDialog(QDialog):
         self.setWindowTitle("Settings")
         iconPath = self._plugin.resource('settings.png')
         self.setWindowIcon(QIcon(iconPath))
-        self.finished.connect(self._commit)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)
 
-        layout = QVBoxLayout(self)
+        windowWidget = QWidget(self)
+        windowLayout = QVBoxLayout(windowWidget)
 
         # Settings Tabs Container
-        tabs = QTabWidget(self)
+        tabs = QTabWidget(windowWidget)
+        windowLayout.addWidget(tabs)
 
         # General Settings tab
         tab_general = TabCfgGeneral(self, tabs)
@@ -456,11 +458,61 @@ class SettingsDialog(QDialog):
         tab_network = TabCfgNetwork(self, tabs)
         tabs.addTab(tab_network, "Network Settings")
 
-        layout.addWidget(tabs)
+        # Action Buttons Container
+        actionsWidget = QWidget(windowWidget)
+        actionsLayout = QHBoxLayout(actionsWidget)
+        windowLayout.addWidget(actionsWidget)
 
-        saveButton = QPushButton("Close")
-        saveButton.clicked.connect(self.accept)
-        layout.addWidget(saveButton)
+        # Save button
+        def save(_):
+            self._commit()
+            self.accept()
+        saveButton = QPushButton("Save")
+        saveButton.clicked.connect(save)
+        actionsLayout.addWidget(saveButton)
+
+        # Reset button
+        resetButton = QPushButton("Reset to Default")
+        resetButton.clicked.connect(self._reset)
+        actionsLayout.addWidget(resetButton)
+
+        # Cancel button
+        def cancel(_):
+            self.reject()
+        cancelButton = QPushButton("Cancel")
+        cancelButton.clicked.connect(cancel)
+        actionsLayout.addWidget(cancelButton)
+
+        self.setFixedSize(
+            windowWidget.sizeHint().width(),
+            windowWidget.sizeHint().height()
+        )
+
+    def _set_color(self, ida_color=None, qt_color=None):
+        """
+        Sets the Qt color of the button.
+
+        :param ida_color: the IDA color
+        :param qt_color: the Qt color
+        """
+        # IDA represents colors as 0xBBGGRR
+        if ida_color is not None:
+            r = ida_color & 255
+            g = (ida_color >> 8) & 255
+            b = (ida_color >> 16) & 255
+
+        # Qt represents colors as 0xRRGGBB
+        if qt_color is not None:
+            r = (qt_color >> 16) & 255
+            g = (qt_color >> 8) & 255
+            b = qt_color & 255
+
+        ida_color = r | g << 8 | b << 16
+        qt_color = r << 16 | g << 8 | b
+
+        css = "QPushButton {background-color: #%06x; color: #%06x;}"
+        self._colorButton.setStyleSheet(css % (qt_color, qt_color))
+        self._color = ida_color
 
     # Here we would like to provide some public methods
     # So methods of widgets do not need to be exported there
@@ -553,13 +605,28 @@ class SettingsDialog(QDialog):
         self._serversTable.removeRow(item.row())
         self.update()
 
-    def _commit(self, _):
-        checked = self._navbarColorizerCheckbox.isChecked()
-        self._plugin.config["user"]["navbar_colorizer"] = checked
+    def _reset(self, _):
+        config = self._plugin.default_config()
 
-        checked = self._notificationsCheckbox.isChecked()
-        self._plugin.config["user"]["notifications"] = checked
+        self._nameLineEdit.setText(config["user"]["name"])
+        self._set_color(ida_color=config["user"]["color"])
 
+        checked = config["user"]["navbar_colorizer"]
+        self._navbarColorizerCheckbox.setChecked(checked)
+        checked = config["user"]["notifications"]
+        self._notificationsCheckbox.setChecked(checked)
+
+        index = self._debugLevelComboBox.findData(config["level"])
+        self._debugLevelComboBox.setCurrentIndex(index)
+
+        self._servers = []
+        self._serversTable.clearContents()
+        self._keepCntSpinBox.setValue(config["keep"]["cnt"])
+        self._keepIntvlSpinBox.setValue(config["keep"]["intvl"])
+        self._keepIdleSpinBox.setValue(config["keep"]["idle"])
+
+
+    def _commit(self):
         name = self._nameLineEdit.text()
         if self._plugin.config["user"]["name"] != name:
             old_name = self._plugin.config["user"]["name"]
@@ -572,6 +639,12 @@ class SettingsDialog(QDialog):
             packet = UserColorChanged(name, old_color, self._color)
             self._plugin.network.send_packet(packet)
             self._plugin.config["user"]["color"] = self._color
+
+        checked = self._navbarColorizerCheckbox.isChecked()
+        self._plugin.config["user"]["navbar_colorizer"] = checked
+
+        checked = self._notificationsCheckbox.isChecked()
+        self._plugin.config["user"]["notifications"] = checked
 
         from idarling.plugin import logger
         index = self._debugLevelComboBox.currentIndex()
