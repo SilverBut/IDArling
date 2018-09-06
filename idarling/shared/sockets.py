@@ -19,7 +19,7 @@ import sys
 
 from PyQt5.QtCore import QCoreApplication, QEvent, QObject, QSocketNotifier
 
-from .packets import Packet, PacketDeferred, Query, Reply, Container
+from .packets import Container, Packet, PacketDeferred, Query, Reply
 
 
 class PacketEvent(QEvent):
@@ -39,6 +39,7 @@ class ClientSocket(QObject):
     """
     A class wrapping a Python socket and integrated into the Qt event loop.
     """
+
     MAX_READ_SIZE = 4096
     MAX_WRITE_SIZE = 65535
 
@@ -80,13 +81,15 @@ class ClientSocket(QObject):
 
         :param sock: the socket
         """
-        self._read_notifier = QSocketNotifier(sock.fileno(),
-                                              QSocketNotifier.Read, self)
+        self._read_notifier = QSocketNotifier(
+            sock.fileno(), QSocketNotifier.Read, self
+        )
         self._read_notifier.activated.connect(self._notify_read)
         self._read_notifier.setEnabled(True)
 
-        self._write_notifier = QSocketNotifier(sock.fileno(),
-                                               QSocketNotifier.Write, self)
+        self._write_notifier = QSocketNotifier(
+            sock.fileno(), QSocketNotifier.Write, self
+        )
         self._write_notifier.activated.connect(self._notify_write)
         self._write_notifier.setEnabled(False)
 
@@ -122,14 +125,19 @@ class ClientSocket(QObject):
          after `cnt` failed ping.
         """
         # Taken from https://github.com/markokr/skytools/
-        TCP_KEEPCNT = getattr(socket, 'TCP_KEEPCNT', None)
-        TCP_KEEPINTVL = getattr(socket, 'TCP_KEEPINTVL', None)
-        TCP_KEEPIDLE = getattr(socket, 'TCP_KEEPIDLE', None)
-        TCP_KEEPALIVE = getattr(socket, 'TCP_KEEPALIVE', None)
-        SIO_KEEPALIVE_VALS = getattr(socket, 'SIO_KEEPALIVE_VALS', None)
-        if TCP_KEEPIDLE is None and TCP_KEEPALIVE is None \
-                and sys.platform == 'darwin':
-            TCP_KEEPALIVE = 0x10
+        TCP_KEEPCNT = getattr(socket, "TCP_KEEPCNT", None)  # noqa: N806
+        TCP_KEEPINTVL = getattr(socket, "TCP_KEEPINTVL", None)  # noqa: N806
+        TCP_KEEPIDLE = getattr(socket, "TCP_KEEPIDLE", None)  # noqa: N806
+        TCP_KEEPALIVE = getattr(socket, "TCP_KEEPALIVE", None)  # noqa: N806
+        SIO_KEEPALIVE_VALS = getattr(  # noqa: N806
+            socket, "SIO_KEEPALIVE_VALS", None
+        )
+        if (
+            TCP_KEEPIDLE is None
+            and TCP_KEEPALIVE is None
+            and sys.platform == "darwin"
+        ):
+            TCP_KEEPALIVE = 0x10  # noqa: N806
 
         self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         if TCP_KEEPCNT is not None:
@@ -141,8 +149,9 @@ class ClientSocket(QObject):
         elif TCP_KEEPALIVE is not None:
             self._socket.setsockopt(socket.IPPROTO_TCP, TCP_KEEPALIVE, idle)
         elif SIO_KEEPALIVE_VALS is not None:
-            self._socket.ioctl(SIO_KEEPALIVE_VALS,
-                               (1, idle * 1000, intvl * 1000))
+            self._socket.ioctl(
+                SIO_KEEPALIVE_VALS, (1, idle * 1000, intvl * 1000)
+            )
 
     def _notify_read(self):
         """
@@ -156,25 +165,30 @@ class ClientSocket(QObject):
                     self.disconnect()
                     break
             except socket.error as e:
-                if e.errno not in (errno.EAGAIN, errno.EWOULDBLOCK) \
-                        and not isinstance(e, ssl.SSLWantReadError) \
-                        and not isinstance(e, ssl.SSLWantWriteError):
+                if (
+                    e.errno not in (errno.EAGAIN, errno.EWOULDBLOCK)
+                    and not isinstance(e, ssl.SSLWantReadError)
+                    and not isinstance(e, ssl.SSLWantWriteError)
+                ):
                     self.disconnect(e)
                 break  # No more data available
             self._read_buffer.extend(data)
 
         while True:
             if self._read_packet is None:
-                if b'\n' in self._read_buffer:
-                    pos = self._read_buffer.index(b'\n')
+                if b"\n" in self._read_buffer:
+                    pos = self._read_buffer.index(b"\n")
                     line = self._read_buffer[:pos]
-                    self._read_buffer = self._read_buffer[pos + 1:]
+                    self._read_buffer = self._read_buffer[
+                        pos + 1 :  # noqa: E203
+                    ]
 
                     # Try to parse the line as a packet
                     try:
-                        dct = json.loads(line.decode('utf-8'))
-                        self._read_packet = Packet.parse_packet(dct,
-                                                                self._server)
+                        dct = json.loads(line.decode("utf-8"))
+                        self._read_packet = Packet.parse_packet(
+                            dct, self._server
+                        )
                     except Exception as e:
                         msg = "Invalid packet received: %s" % line
                         self._logger.warning(msg)
@@ -217,7 +231,7 @@ class ClientSocket(QObject):
 
                 try:
                     line = json.dumps(self._write_packet.build_packet())
-                    line = line.encode('utf-8') + b'\n'
+                    line = line.encode("utf-8") + b"\n"
                 except Exception as e:
                     msg = "Invalid packet being sent: %s" % self._write_packet
                     self._logger.warning(msg)
@@ -233,20 +247,25 @@ class ClientSocket(QObject):
 
             # Send as many bytes as possible
             try:
-                count = min(len(self._write_buffer),
-                            ClientSocket.MAX_WRITE_SIZE)
+                count = min(
+                    len(self._write_buffer), ClientSocket.MAX_WRITE_SIZE
+                )
                 sent = self._socket.send(self._write_buffer[:count])
                 self._write_buffer = self._write_buffer[sent:]
             except socket.error as e:
-                if e.errno not in (errno.EAGAIN, errno.EWOULDBLOCK) \
-                        and not isinstance(e, ssl.SSLWantReadError) \
-                        and not isinstance(e, ssl.SSLWantWriteError):
+                if (
+                    e.errno not in (errno.EAGAIN, errno.EWOULDBLOCK)
+                    and not isinstance(e, ssl.SSLWantReadError)
+                    and not isinstance(e, ssl.SSLWantWriteError)
+                ):
                     self.disconnect(e)
                 break  # Can't write anything
 
             # Trigger the upback
-            if isinstance(self._write_packet, Container) \
-                    and self._write_packet.upback:
+            if (
+                isinstance(self._write_packet, Container)
+                and self._write_packet.upback
+            ):
                 self._write_packet.size -= count
                 total = len(self._write_packet.content)
                 sent = max(total - self._write_packet.size, 0)
@@ -354,8 +373,9 @@ class ServerSocket(QObject):
 
         :param sock: the socket
         """
-        self._accept_notifier = QSocketNotifier(sock.fileno(),
-                                                QSocketNotifier.Read, self)
+        self._accept_notifier = QSocketNotifier(
+            sock.fileno(), QSocketNotifier.Read, self
+        )
         self._accept_notifier.activated.connect(self._notify_accept)
         self._accept_notifier.setEnabled(True)
 
@@ -401,4 +421,4 @@ class ServerSocket(QObject):
 
         :param socket: the socket
         """
-        raise NotImplementedError('accept() is not implemented')
+        raise NotImplementedError("accept() is not implemented")

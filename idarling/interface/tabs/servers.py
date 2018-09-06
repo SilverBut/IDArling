@@ -50,8 +50,8 @@ class _TabCfgServer:
         layout = QVBoxLayout(tab)
 
         program._servers = program._plugin.config["servers"]
-        program._serversTable = QTableWidget(len(program._servers), 2, program)
-        layout.addWidget(program._serversTable)
+        program._servers_table = QTableWidget(len(program._servers), 2, program)
+        layout.addWidget(program._servers_table)
 
         for i, server in enumerate(program._servers):
             item = QTableWidgetItem('%s:%d' % (server["host"], server["port"]))
@@ -59,7 +59,7 @@ class _TabCfgServer:
             item.setFlags(item.flags() & ~Qt.ItemIsEditable)
             if program._plugin.network.server == server:
                 item.setFlags((item.flags() & ~Qt.ItemIsSelectable))
-            program._serversTable.setItem(i, 0, item)
+            program._servers_table.setItem(i, 0, item)
 
             checkbox = QTableWidgetItem()
             state = Qt.Unchecked if server["no_ssl"] else Qt.Checked
@@ -68,46 +68,41 @@ class _TabCfgServer:
             checkbox.setFlags((checkbox.flags() & ~Qt.ItemIsUserCheckable))
             if program._plugin.network.server == server:
                 checkbox.setFlags((checkbox.flags() & ~Qt.ItemIsSelectable))
-            program._serversTable.setItem(i, 1, checkbox)
+            program._servers_table.setItem(i, 1, checkbox)
 
-        program._serversTable.setHorizontalHeaderLabels(("Servers", ""))
-        horizontalHeader = program._serversTable.horizontalHeader()
-        horizontalHeader.setSectionsClickable(False)
-        horizontalHeader.setSectionResizeMode(0, QHeaderView.Stretch)
-        horizontalHeader.setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        program._serversTable.verticalHeader().setVisible(False)
-        program._serversTable.setSelectionBehavior(QTableWidget.SelectRows)
-        program._serversTable.setSelectionMode(QTableWidget.SingleSelection)
-        #program._serversTable.itemClicked.connect(program._server_clicked)
-        #program._serversTable.itemDoubleClicked.connect(
-        #    program._server_double_clicked)
-        #minSZ = program._serversTable.minimumSize()
-        #program._serversTable.setMinimumSize(300, minSZ.height())
-        program._serversTable.itemClicked.connect(program._single_click)
-        program._serversTable.itemDoubleClicked.connect(program._double_click)
-        program._serversTable.setMaximumHeight(100)
+        program._servers_table.setHorizontalHeaderLabels(("Servers", ""))
+        horizontal_header = program._servers_table.horizontalHeader()
+        horizontal_header.setSectionsClickable(False)
+        horizontal_header.setSectionResizeMode(0, QHeaderView.Stretch)
+        horizontal_header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        program._servers_table.verticalHeader().setVisible(False)
+        program._servers_table.setSelectionBehavior(QTableWidget.SelectRows)
+        program._servers_table.setSelectionMode(QTableWidget.SingleSelection)
+        program._servers_table.itemClicked.connect(program._single_click)
+        program._servers_table.itemDoubleClicked.connect(program._double_click)
+        program._servers_table.setMaximumHeight(100)
 
-        buttonsWidget = QWidget(tab)
-        buttonsLayout = QHBoxLayout(buttonsWidget)
-        layout.addWidget(buttonsWidget)
+        buttons_widget = QWidget(tab)
+        buttons_layout = QHBoxLayout(buttons_widget)
+        layout.addWidget(buttons_widget)
 
         # Add server button
         program._addButton = QPushButton("Add Server")
         program._addButton.clicked.connect(program._add_button_clicked)
-        buttonsLayout.addWidget(program._addButton)
+        buttons_layout.addWidget(program._addButton)
 
         # Edit server button
         program._editButton = QPushButton("Edit Server")
         program._editButton.setEnabled(False)
         program._editButton.clicked.connect(program._edit_button_clicked)
-        buttonsLayout.addWidget(program._editButton)
+        buttons_layout.addWidget(program._editButton)
 
         # Delete server button
         program._deleteButton = QPushButton("Delete Server")
         program._deleteButton.setEnabled(False)
         program._deleteButton.clicked.connect(program._delete_button_clicked)
-        buttonsLayout.addWidget(program._deleteButton)
+        buttons_layout.addWidget(program._deleteButton)
 
-        layout.addWidget(buttonsWidget)
+        layout.addWidget(buttons_widget)
 
         return tab

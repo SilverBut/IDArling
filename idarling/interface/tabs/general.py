@@ -54,53 +54,53 @@ class _TabCfgGeneral:
         layout.setFormAlignment(Qt.AlignVCenter)
 
         # Add widgets and restore settings
-        userWidget = QWidget(tab)
-        userLayout = QHBoxLayout(userWidget)
-        layout.addRow(userWidget)
+        user_widget = QWidget(tab)
+        user_layout = QHBoxLayout(user_widget)
+        layout.addRow(user_widget)
 
         # User info settings: Color
-        program._colorButton = QPushButton("")
-        program._colorButton.setFixedSize(50, 30)
+        program._color_button = QPushButton("")
+        program._color_button.setFixedSize(50, 30)
 
         # Add a handler on clicking color button
         def colorButtonActivated(_):
             program._set_color(qt_color = QColorDialog.getColor().rgb())
         program._color = program._plugin.config["user"]["color"]
         program._set_color(ida_color = program._color)
-        program._colorButton.clicked.connect(colorButtonActivated)
-        userLayout.addWidget(program._colorButton)
+        program._color_button.clicked.connect(colorButtonActivated)
+        user_layout.addWidget(program._color_button)
 
         # User info settings: Name
-        program._nameLineEdit = QLineEdit()
+        program._name_line_edit = QLineEdit()
         name = program._plugin.config["user"]["name"]
-        program._nameLineEdit.setText(name)
-        userLayout.addWidget(program._nameLineEdit)
+        program._name_line_edit.setText(name)
+        user_layout.addWidget(program._name_line_edit)
 
         # User info settings: Notifications and Cursors
         text = "Show other users in the navigation bar"
-        program._navbarColorizerCheckbox = QCheckBox(text)
-        layout.addRow(program._navbarColorizerCheckbox)
+        program._navbar_colorizer_checkbox = QCheckBox(text)
+        layout.addRow(program._navbar_colorizer_checkbox)
         checked = program._plugin.config["user"]["navbar_colorizer"]
-        program._navbarColorizerCheckbox.setChecked(checked)
+        program._navbar_colorizer_checkbox.setChecked(checked)
 
         text = "Allow other users to send notifications"
-        program._notificationsCheckbox = QCheckBox(text)
-        layout.addRow(program._notificationsCheckbox)
+        program._notifications_checkbox = QCheckBox(text)
+        layout.addRow(program._notifications_checkbox)
         checked = program._plugin.config["user"]["notifications"]
-        program._notificationsCheckbox.setChecked(checked)
+        program._notifications_checkbox.setChecked(checked)
 
         # User info settings: Debug Level
-        debugLevelLabel = QLabel("Log Level: ")
-        program._debugLevelComboBox = QComboBox()
-        program._debugLevelComboBox.addItem("CRITICAL", logging.CRITICAL)
-        program._debugLevelComboBox.addItem("ERROR", logging.ERROR)
-        program._debugLevelComboBox.addItem("WARNING", logging.WARNING)
-        program._debugLevelComboBox.addItem("INFO", logging.INFO)
-        program._debugLevelComboBox.addItem("DEBUG", logging.DEBUG)
-        program._debugLevelComboBox.addItem("TRACE", logging.TRACE)
+        debug_level_label = QLabel("Log Level: ")
+        program._debug_level_combo_box = QComboBox()
+        program._debug_level_combo_box.addItem("CRITICAL", logging.CRITICAL)
+        program._debug_level_combo_box.addItem("ERROR", logging.ERROR)
+        program._debug_level_combo_box.addItem("WARNING", logging.WARNING)
+        program._debug_level_combo_box.addItem("INFO", logging.INFO)
+        program._debug_level_combo_box.addItem("DEBUG", logging.DEBUG)
+        program._debug_level_combo_box.addItem("TRACE", logging.TRACE)
         level = program._plugin.config["level"]
-        index = program._debugLevelComboBox.findData(level)
-        program._debugLevelComboBox.setCurrentIndex(index)
-        layout.addRow(debugLevelLabel, program._debugLevelComboBox)
+        index = program._debug_level_combo_box.findData(level)
+        program._debug_level_combo_box.setCurrentIndex(index)
+        layout.addRow(debug_level_label, program._debug_level_combo_box)
 
         return tab
