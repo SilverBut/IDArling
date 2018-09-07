@@ -15,6 +15,7 @@ import os
 import socket
 import ssl
 
+from .auth import get_server_auth_provider
 from .commands import (
     DownloadDatabase,
     GetBranches,
@@ -255,7 +256,7 @@ class Server(ServerSocket):
     the integrated and dedicated server implementations. It doesn't do much.
     """
 
-    def __init__(self, logger, ssl, parent=None):
+    def __init__(self, logger, ssl, parent=None, *args, **kwargs):
         ServerSocket.__init__(self, logger, parent)
         self._ssl = ssl
         self._clients = []
@@ -265,6 +266,17 @@ class Server(ServerSocket):
         self._database.initialize()
 
         self._discovery = ClientsDiscovery(logger)
+
+        auth = kwargs.get("auth")
+        auth = {"method": "client_cert"}
+        self._auth = None
+        # Authentication initializations might be initialized here
+        if auth:
+            self._auth_cfg = auth
+            auth_method = self._auth_cfg["method"]
+            # Find right class and build it
+            self._auth = get_server_auth_provider(auth_method)()
+            self._auth.load(self._auth_cfg)
 
     @property
     def database(self):
